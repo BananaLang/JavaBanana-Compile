@@ -1,5 +1,7 @@
 package io.github.bananalang.compile;
 
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.math.BigInteger;
@@ -42,6 +44,18 @@ public final class BananaCompiler {
     BananaCompiler(StatementList root) {
         this.root = root;
         this.result = null;
+    }
+
+    public static ByteCodeFile compileFile(File file) throws IOException {
+        try (FileReader reader = new FileReader(file)) {
+            return compile(reader);
+        }
+    }
+
+    public static ByteCodeFile compileFile(String fileName) throws IOException {
+        try (FileReader reader = new FileReader(fileName)) {
+            return compile(reader);
+        }
     }
 
     public static ByteCodeFile compile(Reader inputReader) throws IOException {
