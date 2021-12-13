@@ -119,17 +119,41 @@ public final class BananaCompiler {
             compileExpression(binExpr.left);
             compileExpression(binExpr.right);
             switch (binExpr.type) {
+                case LOGICAL_OR:
+                    result.putCode(ByteCodes.LOGICAL_OR);
+                    break;
+                case LOGICAL_AND:
+                    result.putCode(ByteCodes.LOGICAL_AND);
+                    break;
+                case BITWISE_OR:
+                    result.putCode(ByteCodes.BITWISE_OR);
+                    break;
+                case BITWISE_XOR:
+                    result.putCode(ByteCodes.BITWISE_XOR);
+                    break;
+                case BITWISE_AND:
+                    result.putCode(ByteCodes.BITWISE_AND);
+                    break;
+                case LEFT_SHIFT:
+                    result.putCode(ByteCodes.LEFT_SHIFT);
+                    break;
+                case RIGHT_SHIFT:
+                    result.putCode(ByteCodes.RIGHT_SHIFT);
+                    break;
                 case ADD:
                     result.putCode(ByteCodes.ADD);
                     break;
                 case SUBTRACT:
-                    result.putCode(ByteCodes.SUB);
+                    result.putCode(ByteCodes.SUBTRACT);
                     break;
                 case MULTIPLY:
-                    result.putCode(ByteCodes.MUL);
+                    result.putCode(ByteCodes.MULTIPLY);
                     break;
                 case DIVIDE:
-                    result.putCode(ByteCodes.DIV);
+                    result.putCode(ByteCodes.DIVIDE);
+                    break;
+                case MODULUS:
+                    result.putCode(ByteCodes.MODULUS);
                     break;
                 default:
                     throw new UnsupportedOperationException("Binary operator " + binExpr.type + " not supported yet");
@@ -163,7 +187,26 @@ public final class BananaCompiler {
         } else if (expr instanceof StringExpression) {
             throw new UnsupportedOperationException("Strings not implemented");
         } else if (expr instanceof UnaryExpression) {
-            throw new UnsupportedOperationException("Unary expressions not implemented");
+            UnaryExpression unaryExpr = (UnaryExpression)expr;
+            compileExpression(unaryExpr.value);
+            switch (unaryExpr.type) {
+                case PLUS:
+                    result.putCode(ByteCodes.UNARY_PLUS);
+                    break;
+                case NEGATE:
+                    result.putCode(ByteCodes.NEGATE);
+                    break;
+                case NOT:
+                    result.putCode(ByteCodes.LOGICAL_NOT);
+                    break;
+                case BITWISE_INVERT:
+                    result.putCode(ByteCodes.BITWISE_INVERT);
+                    break;
+                default:
+                    throw new UnsupportedOperationException("Unary operator " + unaryExpr.type + " not supported yet");
+            }
+        } else {
+            throw new IllegalArgumentException("Unknown expression type " + expr.getClass().getSimpleName());
         }
     }
 }
