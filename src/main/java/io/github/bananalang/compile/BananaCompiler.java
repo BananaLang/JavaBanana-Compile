@@ -4,92 +4,68 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
-import java.math.BigInteger;
 import java.util.List;
 
-import io.github.bananalang.JavaBananaConstants;
-import io.github.bananalang.bytecode.ByteCodeFile;
-import io.github.bananalang.bytecode.ByteCodes;
-import io.github.bananalang.bytecode.NoCollisionsConstantTable;
-import io.github.bananalang.bytecode.constants.DoubleConstant;
-import io.github.bananalang.bytecode.constants.IntegerConstant;
+import org.objectweb.asm.ClassWriter;
+
 import io.github.bananalang.parse.Parser;
 import io.github.bananalang.parse.Tokenizer;
-import io.github.bananalang.parse.ast.AssignmentExpression;
-import io.github.bananalang.parse.ast.BinaryExpression;
-import io.github.bananalang.parse.ast.BooleanExpression;
-import io.github.bananalang.parse.ast.CallExpression;
-import io.github.bananalang.parse.ast.DecimalExpression;
 import io.github.bananalang.parse.ast.ExpressionNode;
 import io.github.bananalang.parse.ast.ExpressionStatement;
-import io.github.bananalang.parse.ast.IdentifierExpression;
-import io.github.bananalang.parse.ast.IntegerExpression;
 import io.github.bananalang.parse.ast.StatementList;
 import io.github.bananalang.parse.ast.StatementNode;
-import io.github.bananalang.parse.ast.StringExpression;
-import io.github.bananalang.parse.ast.UnaryExpression;
 import io.github.bananalang.parse.token.Token;
 
 public final class BananaCompiler {
-    private static final BigInteger TWO = BigInteger.valueOf(2);
-    private static final BigInteger MAX_SBYTE = BigInteger.valueOf(128);
-    private static final BigInteger MIN_SBYTE = BigInteger.valueOf(-129);
-    private static final BigInteger MAX_BYTE = BigInteger.valueOf(256);
-    private static final BigInteger MIN_BYTE = BigInteger.valueOf(-1);
-
     private final StatementList root;
-    private ByteCodeFile result;
-    private NoCollisionsConstantTable constantTable;
+    private ClassWriter result;
 
     BananaCompiler(StatementList root) {
         this.root = root;
         this.result = null;
     }
 
-    public static ByteCodeFile compileFile(File file) throws IOException {
+    public static ClassWriter compileFile(File file) throws IOException {
         try (FileReader reader = new FileReader(file)) {
             return compile(reader);
         }
     }
 
-    public static ByteCodeFile compileFile(String fileName) throws IOException {
+    public static ClassWriter compileFile(String fileName) throws IOException {
         try (FileReader reader = new FileReader(fileName)) {
             return compile(reader);
         }
     }
 
-    public static ByteCodeFile compile(Reader inputReader) throws IOException {
+    public static ClassWriter compile(Reader inputReader) throws IOException {
         return compile(new Parser(inputReader));
     }
 
-    public static ByteCodeFile compile(String source) throws IOException {
+    public static ClassWriter compile(String source) throws IOException {
         return compile(new Parser(source));
     }
 
-    public static ByteCodeFile compile(Tokenizer tokenizer) throws IOException {
+    public static ClassWriter compile(Tokenizer tokenizer) throws IOException {
         return compile(new Parser(tokenizer));
     }
 
-    public static ByteCodeFile compile(List<Token> tokens) throws IOException {
+    public static ClassWriter compile(List<Token> tokens) throws IOException {
         return compile(new Parser(tokens));
     }
 
-    public static ByteCodeFile compile(Parser parser) throws IOException {
+    public static ClassWriter compile(Parser parser) throws IOException {
         return compile(parser.parse());
     }
 
-    public static ByteCodeFile compile(StatementList ast) {
+    public static ClassWriter compile(StatementList ast) {
         BananaCompiler compiler = new BananaCompiler(ast);
         return compiler.compile();
     }
 
-    ByteCodeFile compile() {
+    ClassWriter compile() {
         if (result == null) {
-            result = new ByteCodeFile();
-            constantTable = new NoCollisionsConstantTable();
+            result = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
             compileStatementList(root);
-            result.getConstantTable().addAll(constantTable.getTable());
-            constantTable = null;
         }
         return result;
     }
@@ -105,108 +81,8 @@ public final class BananaCompiler {
 
     private void compileExpressionStatement(ExpressionStatement expr) {
         compileExpression(expr.expression);
-        if (JavaBananaConstants.DEBUG) {
-            result.putCode(ByteCodes.DEBUG_PRINT);
-        }
-        result.putCode(ByteCodes.POP);
     }
 
     private void compileExpression(ExpressionNode expr) {
-        if (expr instanceof AssignmentExpression) {
-            throw new UnsupportedOperationException("Assignment expressions not implemented");
-        } else if (expr instanceof BinaryExpression) {
-            BinaryExpression binExpr = (BinaryExpression)expr;
-            compileExpression(binExpr.left);
-            compileExpression(binExpr.right);
-            switch (binExpr.type) {
-                case LOGICAL_OR:
-                    result.putCode(ByteCodes.LOGICAL_OR);
-                    break;
-                case LOGICAL_AND:
-                    result.putCode(ByteCodes.LOGICAL_AND);
-                    break;
-                case BITWISE_OR:
-                    result.putCode(ByteCodes.BITWISE_OR);
-                    break;
-                case BITWISE_XOR:
-                    result.putCode(ByteCodes.BITWISE_XOR);
-                    break;
-                case BITWISE_AND:
-                    result.putCode(ByteCodes.BITWISE_AND);
-                    break;
-                case LEFT_SHIFT:
-                    result.putCode(ByteCodes.LEFT_SHIFT);
-                    break;
-                case RIGHT_SHIFT:
-                    result.putCode(ByteCodes.RIGHT_SHIFT);
-                    break;
-                case ADD:
-                    result.putCode(ByteCodes.ADD);
-                    break;
-                case SUBTRACT:
-                    result.putCode(ByteCodes.SUBTRACT);
-                    break;
-                case MULTIPLY:
-                    result.putCode(ByteCodes.MULTIPLY);
-                    break;
-                case DIVIDE:
-                    result.putCode(ByteCodes.DIVIDE);
-                    break;
-                case MODULUS:
-                    result.putCode(ByteCodes.MODULUS);
-                    break;
-                default:
-                    throw new UnsupportedOperationException("Binary operator " + binExpr.type + " not supported yet");
-            }
-        } else if (expr instanceof BooleanExpression) {
-            throw new UnsupportedOperationException("Boolean expressions not implemented");
-        } else if (expr instanceof CallExpression) {
-            throw new UnsupportedOperationException("Call expressions not implemented");
-        } else if (expr instanceof DecimalExpression) {
-            DecimalExpression decExpr = (DecimalExpression)expr;
-            int constIndex = constantTable.add(new DoubleConstant(decExpr.value));
-            result.putLoadConstant(constIndex);
-        } else if (expr instanceof IdentifierExpression) {
-            throw new UnsupportedOperationException("Identifiers not implemented");
-        } else if (expr instanceof IntegerExpression) {
-            IntegerExpression intExpr = (IntegerExpression)expr;
-            if (intExpr.value.equals(BigInteger.ZERO)) {
-                result.putCode(ByteCodes.LOAD_0);
-            } else if (intExpr.value.equals(BigInteger.ONE)) {
-                result.putCode(ByteCodes.LOAD_1);
-            } else if (intExpr.value.equals(TWO)) {
-                result.putCode(ByteCodes.LOAD_2);
-            } else if (intExpr.value.compareTo(MIN_SBYTE) > 0 && intExpr.value.compareTo(MAX_SBYTE) < 0) {
-                result.putSByte(intExpr.value.byteValue());
-            } else if (intExpr.value.compareTo(MIN_BYTE) > 0 && intExpr.value.compareTo(MAX_BYTE) < 0) {
-                result.putByte((byte)(intExpr.value.intValue() & 0xff));
-            } else {
-                int constIndex = constantTable.add(new IntegerConstant(intExpr.value));
-                result.putLoadConstant(constIndex);
-            }
-        } else if (expr instanceof StringExpression) {
-            throw new UnsupportedOperationException("Strings not implemented");
-        } else if (expr instanceof UnaryExpression) {
-            UnaryExpression unaryExpr = (UnaryExpression)expr;
-            compileExpression(unaryExpr.value);
-            switch (unaryExpr.type) {
-                case PLUS:
-                    result.putCode(ByteCodes.UNARY_PLUS);
-                    break;
-                case NEGATE:
-                    result.putCode(ByteCodes.NEGATE);
-                    break;
-                case NOT:
-                    result.putCode(ByteCodes.LOGICAL_NOT);
-                    break;
-                case BITWISE_INVERT:
-                    result.putCode(ByteCodes.BITWISE_INVERT);
-                    break;
-                default:
-                    throw new UnsupportedOperationException("Unary operator " + unaryExpr.type + " not supported yet");
-            }
-        } else {
-            throw new IllegalArgumentException("Unknown expression type " + expr.getClass().getSimpleName());
-        }
     }
 }
