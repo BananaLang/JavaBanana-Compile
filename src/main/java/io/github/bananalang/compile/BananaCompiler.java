@@ -7,20 +7,33 @@ import java.io.Reader;
 import java.util.List;
 
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 import io.github.bananalang.parse.Parser;
 import io.github.bananalang.parse.Tokenizer;
+import io.github.bananalang.parse.ast.AccessExpression;
+import io.github.bananalang.parse.ast.CallExpression;
 import io.github.bananalang.parse.ast.ExpressionNode;
 import io.github.bananalang.parse.ast.ExpressionStatement;
 import io.github.bananalang.parse.ast.StatementList;
 import io.github.bananalang.parse.ast.StatementNode;
+import io.github.bananalang.parse.ast.StringExpression;
 import io.github.bananalang.parse.token.Token;
+import io.github.bananalang.typecheck.Typechecker;
+import javassist.ClassPool;
+import javassist.CtMethod;
+import javassist.LoaderClassPath;
+import javassist.Modifier;
+import javassist.bytecode.Descriptor;
 
 public final class BananaCompiler {
+    private final Typechecker types;
     private final StatementList root;
     private ClassWriter result;
 
-    BananaCompiler(StatementList root) {
+    BananaCompiler(Typechecker types, StatementList root) {
+        this.types = types;
         this.root = root;
         this.result = null;
     }
@@ -54,35 +67,92 @@ public final class BananaCompiler {
     }
 
     public static ClassWriter compile(Parser parser) throws IOException {
-        return compile(parser.parse());
+        StatementList root = parser.parse();
+        ClassPool cp = new ClassPool(ClassPool.getDefault());
+        cp.appendClassPath(new LoaderClassPath(BananaCompiler.class.getClassLoader()));
+        Typechecker typechecker = new Typechecker(cp);
+        typechecker.typecheck(root);
+        return compile(typechecker, root);
     }
 
-    public static ClassWriter compile(StatementList ast) {
-        BananaCompiler compiler = new BananaCompiler(ast);
+    public static ClassWriter compile(Typechecker types, StatementList ast) {
+        BananaCompiler compiler = new BananaCompiler(types, ast);
         return compiler.compile();
     }
 
-    ClassWriter compile() {
+    private ClassWriter compile() {
         if (result == null) {
             result = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-            compileStatementList(root);
+            result.visit(52, Opcodes.ACC_PUBLIC, "GiveMeANameTODO", null, "java/lang/Object", null);
+            {
+                MethodVisitor initMethod = result.visitMethod(Opcodes.ACC_PRIVATE, "<init>", "()V", null, null);
+                initMethod.visitCode();
+                initMethod.visitVarInsn(Opcodes.ALOAD, 0);
+                initMethod.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+                initMethod.visitInsn(Opcodes.RETURN);
+                initMethod.visitMaxs(-1, -1);
+                initMethod.visitEnd();
+            }
+            if (needsMainMethod()) {
+                MethodVisitor mainMethod = result.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
+                mainMethod.visitParameter("main", 0);
+                mainMethod.visitCode();
+                compileStatementList(mainMethod, root, true);
+                mainMethod.visitInsn(Opcodes.RETURN);
+                mainMethod.visitMaxs(-1, -1);
+                mainMethod.visitEnd();
+            }
+            result.visitEnd();
         }
         return result;
     }
 
-    private void compileStatementList(StatementList node) {
+    private boolean needsMainMethod() {
+        return true;
+    }
+
+    private void compileStatementList(MethodVisitor method, StatementList node, boolean skipMethods) {
         for (StatementNode child : node.children) {
-            if (!(child instanceof ExpressionStatement)) {
-                throw new UnsupportedOperationException("Non-expression statements not implemented");
+            if (child instanceof ExpressionStatement) {
+                compileExpressionStatement(method, (ExpressionStatement)child);
+            } else {
+                throw new IllegalArgumentException(node.getClass().getSimpleName() + " not supported yet");
             }
-            compileExpressionStatement((ExpressionStatement)child);
         }
     }
 
-    private void compileExpressionStatement(ExpressionStatement expr) {
-        compileExpression(expr.expression);
+    private void compileExpressionStatement(MethodVisitor method, ExpressionStatement expr) {
+        compileExpression(method, expr.expression);
+        if (!types.getType(expr.expression).getName().equals("void")) {
+            method.visitInsn(Opcodes.POP);
+        }
     }
 
-    private void compileExpression(ExpressionNode expr) {
+    private void compileExpression(MethodVisitor method, ExpressionNode expr) {
+        if (expr instanceof StringExpression) {
+            method.visitLdcInsn(((StringExpression)expr).value);
+        } else if (expr instanceof CallExpression) {
+            CallExpression callExpr = (CallExpression)expr;
+            CtMethod methodToCall = types.getMethodCall(callExpr);
+            boolean isStatic = Modifier.isStatic(methodToCall.getModifiers());
+            if (callExpr.target instanceof AccessExpression && !isStatic) {
+                compileExpression(method, ((AccessExpression)callExpr.target).target);
+            }
+            for (ExpressionNode arg : callExpr.args) {
+                compileExpression(method, arg);
+            }
+            int opcode = isStatic
+                ? Opcodes.INVOKESTATIC
+                : (methodToCall.getDeclaringClass().isInterface()
+                    ? Opcodes.INVOKEINTERFACE
+                    : Opcodes.INVOKEVIRTUAL);
+            method.visitMethodInsn(
+                opcode,
+                Descriptor.toJvmName(methodToCall.getDeclaringClass()),
+                methodToCall.getName(),
+                methodToCall.getMethodInfo().getDescriptor(),
+                opcode == Opcodes.INVOKEINTERFACE
+            );
+        }
     }
 }
