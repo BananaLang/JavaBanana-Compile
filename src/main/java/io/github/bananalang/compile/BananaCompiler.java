@@ -38,64 +38,66 @@ import javassist.bytecode.Descriptor;
 public final class BananaCompiler {
     private final Typechecker types;
     private final StatementList root;
+    private final CompileOptions options;
     private ClassWriter result;
 
     private final Deque<Map.Entry<StatementList, Integer>> scopes = new ArrayDeque<>();
     private final Map<String, Integer> variableDeclarations = new HashMap<>();
     private int currentVariableDecl = 1;
 
-    BananaCompiler(Typechecker types, StatementList root) {
+    private BananaCompiler(Typechecker types, StatementList root, CompileOptions options) {
         this.types = types;
         this.root = root;
+        this.options = options;
         this.result = null;
     }
 
-    public static ClassWriter compileFile(File file) throws IOException {
+    public static ClassWriter compileFile(File file, CompileOptions options) throws IOException {
         try (FileReader reader = new FileReader(file)) {
-            return compile(reader);
+            return compile(reader, options);
         }
     }
 
-    public static ClassWriter compileFile(String fileName) throws IOException {
+    public static ClassWriter compileFile(String fileName, CompileOptions options) throws IOException {
         try (FileReader reader = new FileReader(fileName)) {
-            return compile(reader);
+            return compile(reader, options);
         }
     }
 
-    public static ClassWriter compile(Reader inputReader) throws IOException {
-        return compile(new Parser(inputReader));
+    public static ClassWriter compile(Reader inputReader, CompileOptions options) throws IOException {
+        return compile(new Parser(inputReader), options);
     }
 
-    public static ClassWriter compile(String source) throws IOException {
-        return compile(new Parser(source));
+    public static ClassWriter compile(String source, CompileOptions options) throws IOException {
+        return compile(new Parser(source), options);
     }
 
-    public static ClassWriter compile(Tokenizer tokenizer) throws IOException {
-        return compile(new Parser(tokenizer));
+    public static ClassWriter compile(Tokenizer tokenizer, CompileOptions options) throws IOException {
+        return compile(new Parser(tokenizer), options);
     }
 
-    public static ClassWriter compile(List<Token> tokens) throws IOException {
-        return compile(new Parser(tokens));
+    public static ClassWriter compile(List<Token> tokens, CompileOptions options) throws IOException {
+        return compile(new Parser(tokens), options);
     }
 
-    public static ClassWriter compile(Parser parser) throws IOException {
+    public static ClassWriter compile(Parser parser, CompileOptions options) throws IOException {
         StatementList root = parser.parse();
         ClassPool cp = new ClassPool(ClassPool.getDefault());
         cp.appendClassPath(new LoaderClassPath(BananaCompiler.class.getClassLoader()));
         Typechecker typechecker = new Typechecker(cp);
         typechecker.typecheck(root);
-        return compile(typechecker, root);
+        return compile(typechecker, root, options);
     }
 
-    public static ClassWriter compile(Typechecker types, StatementList ast) {
-        BananaCompiler compiler = new BananaCompiler(types, ast);
+    public static ClassWriter compile(Typechecker types, StatementList ast, CompileOptions options) {
+        BananaCompiler compiler = new BananaCompiler(types, ast, options);
         return compiler.compile();
     }
 
     private ClassWriter compile() {
         if (result == null) {
             result = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-            result.visit(52, Opcodes.ACC_PUBLIC, "GiveMeANameTODO", null, "java/lang/Object", null);
+            result.visit(52, Opcodes.ACC_PUBLIC, options.className(), null, "java/lang/Object", null);
             {
                 MethodVisitor initMethod = result.visitMethod(Opcodes.ACC_PRIVATE, "<init>", "()V", null, null);
                 initMethod.visitCode();
@@ -107,7 +109,7 @@ public final class BananaCompiler {
             }
             if (needsMainMethod()) {
                 MethodVisitor mainMethod = result.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
-                mainMethod.visitParameter("main", 0);
+                mainMethod.visitParameter("args", 0);
                 mainMethod.visitCode();
                 compileStatementList(mainMethod, root, true);
                 mainMethod.visitInsn(Opcodes.RETURN);

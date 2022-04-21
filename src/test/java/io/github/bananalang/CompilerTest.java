@@ -10,19 +10,25 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.util.CheckClassAdapter;
 
 import io.github.bananalang.compile.BananaCompiler;
+import io.github.bananalang.compile.CompileOptions;
 
 public class CompilerTest {
     public static void main(String[] args) throws IOException {
+        CompileOptions compileOptions = new CompileOptions()
+            .sourceFileName("test.ba")
+            .defaultModuleName()
+            .defaultClassName();
         ClassWriter result = BananaCompiler.compile(
             "def var myVar = \"The Thing\";" +
-            "println(myVar);"
+            "println(myVar);",
+            compileOptions
         );
         byte[] classData = result.toByteArray();
 
         PrintWriter pw = new PrintWriter(System.out);
         CheckClassAdapter.verify(new ClassReader(classData), true, pw);
 
-        try (OutputStream out = new FileOutputStream("GiveMeANameTODO.class")) {
+        try (OutputStream out = new FileOutputStream(compileOptions.classFileName())) {
             out.write(classData);
         }
     }
