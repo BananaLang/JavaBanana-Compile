@@ -4,7 +4,12 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.ArrayDeque;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
@@ -16,9 +21,12 @@ import io.github.bananalang.parse.ast.AccessExpression;
 import io.github.bananalang.parse.ast.CallExpression;
 import io.github.bananalang.parse.ast.ExpressionNode;
 import io.github.bananalang.parse.ast.ExpressionStatement;
+import io.github.bananalang.parse.ast.IdentifierExpression;
 import io.github.bananalang.parse.ast.StatementList;
 import io.github.bananalang.parse.ast.StatementNode;
 import io.github.bananalang.parse.ast.StringExpression;
+import io.github.bananalang.parse.ast.VariableDeclarationStatement;
+import io.github.bananalang.parse.ast.VariableDeclarationStatement.VariableDeclaration;
 import io.github.bananalang.parse.token.Token;
 import io.github.bananalang.typecheck.Typechecker;
 import javassist.ClassPool;
@@ -31,6 +39,10 @@ public final class BananaCompiler {
     private final Typechecker types;
     private final StatementList root;
     private ClassWriter result;
+
+    private final Deque<Map.Entry<StatementList, Integer>> scopes = new ArrayDeque<>();
+    private final Map<String, Integer> variableDeclarations = new HashMap<>();
+    private int currentVariableDecl = 1;
 
     BananaCompiler(Typechecker types, StatementList root) {
         this.types = types;
@@ -112,19 +124,36 @@ public final class BananaCompiler {
     }
 
     private void compileStatementList(MethodVisitor method, StatementList node, boolean skipMethods) {
+        scopes.addLast(new SimpleImmutableEntry<>(node, currentVariableDecl));
         for (StatementNode child : node.children) {
             if (child instanceof ExpressionStatement) {
                 compileExpressionStatement(method, (ExpressionStatement)child);
+            } else if (child instanceof VariableDeclarationStatement) {
+                compileVariableDeclarationStatement(method, (VariableDeclarationStatement)child);
             } else {
-                throw new IllegalArgumentException(node.getClass().getSimpleName() + " not supported yet");
+                throw new IllegalArgumentException(node.getClass().getSimpleName() + " not supported for compilation yet");
             }
         }
+        currentVariableDecl = scopes.removeLast().getValue();
     }
 
     private void compileExpressionStatement(MethodVisitor method, ExpressionStatement expr) {
         compileExpression(method, expr.expression);
         if (!types.getType(expr.expression).getName().equals("void")) {
             method.visitInsn(Opcodes.POP);
+        }
+    }
+
+    private void compileVariableDeclarationStatement(MethodVisitor method, VariableDeclarationStatement stmt) {
+        // Map<String, EvaluatedType> scopeTypes = types.getScopes().get(scopes.peekLast().getKey());
+        for (VariableDeclaration decl : stmt.declarations) {
+            if (decl.value != null) {
+                // CtClass type = scopeTypes.get(decl.name).getJavassist();
+                compileExpression(method, decl.value);
+                variableDeclarations.put(decl.name, currentVariableDecl);
+                method.visitVarInsn(Opcodes.ASTORE, currentVariableDecl);
+                currentVariableDecl++;
+            }
         }
     }
 
@@ -153,6 +182,11 @@ public final class BananaCompiler {
                 methodToCall.getMethodInfo().getDescriptor(),
                 opcode == Opcodes.INVOKEINTERFACE
             );
+        } else if (expr instanceof IdentifierExpression) {
+            IdentifierExpression identExpr = (IdentifierExpression)expr;
+            method.visitVarInsn(Opcodes.ALOAD, variableDeclarations.get(identExpr.identifier));
+        } else {
+            throw new IllegalArgumentException(expr.getClass().getSimpleName() + " not supported for compilation yet");
         }
     }
 }

@@ -38,13 +38,30 @@
     </dependency>
     <dependency>
       <groupId>io.github.bananalang</groupId>
+      <artifactId>JavaBanana-Typecheck</artifactId>
+      <version>1.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.bananalang</groupId>
       <artifactId>JavaBanana-Common</artifactId>
       <version>1.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>io.github.bananalang</groupId>
+      <artifactId>JavaBanana-Stdlib</artifactId>
+      <version>1.0-SNAPSHOT</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.ow2.asm</groupId>
       <artifactId>asm</artifactId>
       <version>9.3</version>
+    </dependency>
+    <dependency>
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm-util</artifactId>
+      <version>9.3</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -79,7 +96,7 @@
           <execution>
             <id>attach-sources</id>
             <goals>
-              <goal>jar</goal>
+              <goal>jar-no-fork</goal>
             </goals>
           </execution>
         </executions>

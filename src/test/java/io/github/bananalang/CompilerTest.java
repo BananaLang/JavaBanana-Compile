@@ -14,8 +14,8 @@ import io.github.bananalang.compile.BananaCompiler;
 public class CompilerTest {
     public static void main(String[] args) throws IOException {
         ClassWriter result = BananaCompiler.compile(
-            "println(\"Hello world!\");" +
-            "println(\"bAnAnA\".toUpperCase());"
+            "def var myVar = \"The Thing\";" +
+            "println(myVar);"
         );
         byte[] classData = result.toByteArray();
 
