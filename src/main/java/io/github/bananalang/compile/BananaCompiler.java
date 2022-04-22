@@ -22,6 +22,7 @@ import io.github.bananalang.parse.ast.AccessExpression;
 import io.github.bananalang.parse.ast.CallExpression;
 import io.github.bananalang.parse.ast.ExpressionNode;
 import io.github.bananalang.parse.ast.ExpressionStatement;
+import io.github.bananalang.parse.ast.FunctionDefinitionStatement;
 import io.github.bananalang.parse.ast.IdentifierExpression;
 import io.github.bananalang.parse.ast.ImportStatement;
 import io.github.bananalang.parse.ast.StatementList;
@@ -124,7 +125,12 @@ public final class BananaCompiler {
     }
 
     private boolean needsMainMethod() {
-        return true;
+        for (StatementNode child : root.children) {
+            if (child instanceof ImportStatement) continue;
+            if (child instanceof FunctionDefinitionStatement) continue;
+            return true;
+        }
+        return false;
     }
 
     private void compileStatementList(InstructionAdapter method, StatementList node, boolean skipMethods) {
