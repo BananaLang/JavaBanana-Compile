@@ -14,6 +14,7 @@ import java.util.Map;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
+import org.objectweb.asm.commons.InstructionAdapter;
 
 import io.github.bananalang.parse.Parser;
 import io.github.bananalang.parse.Tokenizer;
@@ -22,6 +23,7 @@ import io.github.bananalang.parse.ast.CallExpression;
 import io.github.bananalang.parse.ast.ExpressionNode;
 import io.github.bananalang.parse.ast.ExpressionStatement;
 import io.github.bananalang.parse.ast.IdentifierExpression;
+import io.github.bananalang.parse.ast.ImportStatement;
 import io.github.bananalang.parse.ast.StatementList;
 import io.github.bananalang.parse.ast.StatementNode;
 import io.github.bananalang.parse.ast.StringExpression;
@@ -111,7 +113,7 @@ public final class BananaCompiler {
                 MethodVisitor mainMethod = result.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
                 mainMethod.visitParameter("args", 0);
                 mainMethod.visitCode();
-                compileStatementList(mainMethod, root, true);
+                compileStatementList(new InstructionAdapter(mainMethod), root, true);
                 mainMethod.visitInsn(Opcodes.RETURN);
                 mainMethod.visitMaxs(-1, -1);
                 mainMethod.visitEnd();
@@ -125,28 +127,28 @@ public final class BananaCompiler {
         return true;
     }
 
-    private void compileStatementList(MethodVisitor method, StatementList node, boolean skipMethods) {
+    private void compileStatementList(InstructionAdapter method, StatementList node, boolean skipMethods) {
         scopes.addLast(new SimpleImmutableEntry<>(node, currentVariableDecl));
         for (StatementNode child : node.children) {
             if (child instanceof ExpressionStatement) {
                 compileExpressionStatement(method, (ExpressionStatement)child);
             } else if (child instanceof VariableDeclarationStatement) {
                 compileVariableDeclarationStatement(method, (VariableDeclarationStatement)child);
-            } else {
-                throw new IllegalArgumentException(node.getClass().getSimpleName() + " not supported for compilation yet");
+            } else if (!(child instanceof ImportStatement)) {
+                throw new IllegalArgumentException(child.getClass().getSimpleName() + " not supported for compilation yet");
             }
         }
         currentVariableDecl = scopes.removeLast().getValue();
     }
 
-    private void compileExpressionStatement(MethodVisitor method, ExpressionStatement expr) {
+    private void compileExpressionStatement(InstructionAdapter method, ExpressionStatement expr) {
         compileExpression(method, expr.expression);
         if (!types.getType(expr.expression).getName().equals("void")) {
-            method.visitInsn(Opcodes.POP);
+            method.pop();
         }
     }
 
-    private void compileVariableDeclarationStatement(MethodVisitor method, VariableDeclarationStatement stmt) {
+    private void compileVariableDeclarationStatement(InstructionAdapter method, VariableDeclarationStatement stmt) {
         // Map<String, EvaluatedType> scopeTypes = types.getScopes().get(scopes.peekLast().getKey());
         for (VariableDeclaration decl : stmt.declarations) {
             if (decl.value != null) {
@@ -159,7 +161,7 @@ public final class BananaCompiler {
         }
     }
 
-    private void compileExpression(MethodVisitor method, ExpressionNode expr) {
+    private void compileExpression(InstructionAdapter method, ExpressionNode expr) {
         if (expr instanceof StringExpression) {
             method.visitLdcInsn(((StringExpression)expr).value);
         } else if (expr instanceof CallExpression) {
@@ -169,8 +171,26 @@ public final class BananaCompiler {
             if (callExpr.target instanceof AccessExpression && !isStatic) {
                 compileExpression(method, ((AccessExpression)callExpr.target).target);
             }
-            for (ExpressionNode arg : callExpr.args) {
-                compileExpression(method, arg);
+            String descriptor = methodToCall.getMethodInfo().getDescriptor();
+            if (Modifier.isVarArgs(methodToCall.getModifiers())) {
+                int actualArgCount = Descriptor.numOfParameters(descriptor);
+                for (int i = 0; i < actualArgCount - 1; i++) {
+                    compileExpression(method, callExpr.args[i]);
+                }
+                method.iconst(callExpr.args.length - actualArgCount + 1);
+                int endParen = descriptor.indexOf(')');
+                String arrType = descriptor.substring(descriptor.lastIndexOf('L', endParen - 2) + 1, endParen - 1);
+                method.visitTypeInsn(Opcodes.ANEWARRAY, arrType);
+                for (int i = actualArgCount - 1; i < callExpr.args.length; i++) {
+                    method.dup();
+                    method.iconst(i - actualArgCount + 1);
+                    compileExpression(method, callExpr.args[i]);
+                    method.visitInsn(Opcodes.AASTORE);
+                }
+            } else {
+                for (ExpressionNode arg : callExpr.args) {
+                    compileExpression(method, arg);
+                }
             }
             int opcode = isStatic
                 ? Opcodes.INVOKESTATIC
@@ -181,7 +201,7 @@ public final class BananaCompiler {
                 opcode,
                 Descriptor.toJvmName(methodToCall.getDeclaringClass()),
                 methodToCall.getName(),
-                methodToCall.getMethodInfo().getDescriptor(),
+                descriptor,
                 opcode == Opcodes.INVOKEINTERFACE
             );
         } else if (expr instanceof IdentifierExpression) {

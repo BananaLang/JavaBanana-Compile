@@ -19,8 +19,10 @@ public class CompilerTest {
             .defaultModuleName()
             .defaultClassName();
         ClassWriter result = BananaCompiler.compile(
-            "def var myVar = \"The Thing\";" +
-            "println(myVar);",
+            "import java.lang.Class.forName;" +
+            "println(forName(\"java.util.HashMap\").getDeclaredMethod(" +
+                "\"computeIfAbsent\", forName(\"java.lang.Object\"), forName(\"java.util.function.Function\")" +
+            "));",
             compileOptions
         );
         byte[] classData = result.toByteArray();
