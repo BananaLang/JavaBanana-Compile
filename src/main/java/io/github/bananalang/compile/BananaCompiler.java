@@ -31,6 +31,9 @@ import io.github.bananalang.parse.ast.StringExpression;
 import io.github.bananalang.parse.ast.VariableDeclarationStatement;
 import io.github.bananalang.parse.ast.VariableDeclarationStatement.VariableDeclaration;
 import io.github.bananalang.parse.token.Token;
+import io.github.bananalang.typecheck.EvaluatedType;
+import io.github.bananalang.typecheck.MethodCall;
+import io.github.bananalang.typecheck.ScriptMethod;
 import io.github.bananalang.typecheck.Typechecker;
 import javassist.ClassPool;
 import javassist.CtMethod;
@@ -140,7 +143,7 @@ public final class BananaCompiler {
                 compileExpressionStatement(method, (ExpressionStatement)child);
             } else if (child instanceof VariableDeclarationStatement) {
                 compileVariableDeclarationStatement(method, (VariableDeclarationStatement)child);
-            } else if (!(child instanceof ImportStatement)) {
+            } else if (!(child instanceof ImportStatement) && !(child instanceof FunctionDefinitionStatement)) {
                 throw new IllegalArgumentException(child.getClass().getSimpleName() + " not supported for compilation yet");
             }
         }
@@ -172,40 +175,60 @@ public final class BananaCompiler {
             method.visitLdcInsn(((StringExpression)expr).value);
         } else if (expr instanceof CallExpression) {
             CallExpression callExpr = (CallExpression)expr;
-            CtMethod methodToCall = types.getMethodCall(callExpr);
-            boolean isStatic = Modifier.isStatic(methodToCall.getModifiers());
-            if (callExpr.target instanceof AccessExpression && !isStatic) {
-                compileExpression(method, ((AccessExpression)callExpr.target).target);
-            }
-            String descriptor = methodToCall.getMethodInfo().getDescriptor();
-            if (Modifier.isVarArgs(methodToCall.getModifiers())) {
-                int actualArgCount = Descriptor.numOfParameters(descriptor);
-                for (int i = 0; i < actualArgCount - 1; i++) {
-                    compileExpression(method, callExpr.args[i]);
-                }
-                method.iconst(callExpr.args.length - actualArgCount + 1);
-                int endParen = descriptor.indexOf(')');
-                String arrType = descriptor.substring(descriptor.lastIndexOf('L', endParen - 2) + 1, endParen - 1);
-                method.visitTypeInsn(Opcodes.ANEWARRAY, arrType);
-                for (int i = actualArgCount - 1; i < callExpr.args.length; i++) {
-                    method.dup();
-                    method.iconst(i - actualArgCount + 1);
-                    compileExpression(method, callExpr.args[i]);
-                    method.visitInsn(Opcodes.AASTORE);
-                }
-            } else {
+            MethodCall methodToCall = types.getMethodCall(callExpr);
+            int opcode;
+            String ownerName, descriptor;
+            if (methodToCall.isScriptMethod()) {
                 for (ExpressionNode arg : callExpr.args) {
                     compileExpression(method, arg);
                 }
+                ScriptMethod scriptMethod = methodToCall.getScriptMethod();
+                opcode = Opcodes.INVOKESTATIC;
+                ownerName = options.className();
+                StringBuilder descriptorBuilder = new StringBuilder("(");
+                for (EvaluatedType argType : scriptMethod.getArgTypes()) {
+                    descriptorBuilder.append(Descriptor.of(argType.getJavassist()));
+                }
+                descriptor = descriptorBuilder.append(')')
+                    .append(Descriptor.of(scriptMethod.getReturnType().getJavassist()))
+                    .toString();
+            } else {
+                CtMethod javaMethod = methodToCall.getJavaMethod();
+                boolean isStatic = Modifier.isStatic(javaMethod.getModifiers());
+                if (callExpr.target instanceof AccessExpression && !isStatic) {
+                    compileExpression(method, ((AccessExpression)callExpr.target).target);
+                }
+                descriptor = javaMethod.getMethodInfo().getDescriptor();
+                if (Modifier.isVarArgs(javaMethod.getModifiers())) {
+                    int actualArgCount = Descriptor.numOfParameters(descriptor);
+                    for (int i = 0; i < actualArgCount - 1; i++) {
+                        compileExpression(method, callExpr.args[i]);
+                    }
+                    method.iconst(callExpr.args.length - actualArgCount + 1);
+                    int endParen = descriptor.indexOf(')');
+                    String arrType = descriptor.substring(descriptor.lastIndexOf('L', endParen - 2) + 1, endParen - 1);
+                    method.visitTypeInsn(Opcodes.ANEWARRAY, arrType);
+                    for (int i = actualArgCount - 1; i < callExpr.args.length; i++) {
+                        method.dup();
+                        method.iconst(i - actualArgCount + 1);
+                        compileExpression(method, callExpr.args[i]);
+                        method.visitInsn(Opcodes.AASTORE);
+                    }
+                } else {
+                    for (ExpressionNode arg : callExpr.args) {
+                        compileExpression(method, arg);
+                    }
+                }
+                opcode = isStatic
+                    ? Opcodes.INVOKESTATIC
+                    : (javaMethod.getDeclaringClass().isInterface()
+                        ? Opcodes.INVOKEINTERFACE
+                        : Opcodes.INVOKEVIRTUAL);
+                ownerName = Descriptor.toJvmName(javaMethod.getDeclaringClass());
             }
-            int opcode = isStatic
-                ? Opcodes.INVOKESTATIC
-                : (methodToCall.getDeclaringClass().isInterface()
-                    ? Opcodes.INVOKEINTERFACE
-                    : Opcodes.INVOKEVIRTUAL);
             method.visitMethodInsn(
                 opcode,
-                Descriptor.toJvmName(methodToCall.getDeclaringClass()),
+                ownerName,
                 methodToCall.getName(),
                 descriptor,
                 opcode == Opcodes.INVOKEINTERFACE

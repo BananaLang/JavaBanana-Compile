@@ -19,10 +19,10 @@ public class CompilerTest {
             .defaultModuleName()
             .defaultClassName();
         ClassWriter result = BananaCompiler.compile(
-            "import java.lang.Class.forName;" +
-            "println(forName(\"java.util.HashMap\").getDeclaredMethod(" +
-                "\"computeIfAbsent\", forName(\"java.lang.Object\"), forName(\"java.util.function.Function\")" +
-            "));",
+            "def var join(String a, String b) {" +
+                "return a.concat(\" \").concat(b);" +
+            "}" +
+            "println(join(\"hello\", \"world\"));",
             compileOptions
         );
         byte[] classData = result.toByteArray();
