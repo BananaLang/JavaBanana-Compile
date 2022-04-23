@@ -140,7 +140,12 @@ public final class BananaCompiler {
                     }
                     mv.visitCode();
                     compileStatementList(new InstructionAdapter(mv), functionDefinition.body, true);
-                    mv.visitInsn(Opcodes.RETURN);
+                    if (methodDefinition.getReturnType().getName().equals("void")) {
+                        mv.visitInsn(Opcodes.RETURN);
+                    } else {
+                        mv.visitInsn(Opcodes.ACONST_NULL);
+                        mv.visitInsn(Opcodes.ARETURN);
+                    }
                     mv.visitMaxs(-1, -1);
                     mv.visitEnd();
                     variableDeclarations.clear();
