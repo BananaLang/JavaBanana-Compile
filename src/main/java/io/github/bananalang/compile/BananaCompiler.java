@@ -25,6 +25,7 @@ import io.github.bananalang.parse.ast.ExpressionStatement;
 import io.github.bananalang.parse.ast.FunctionDefinitionStatement;
 import io.github.bananalang.parse.ast.IdentifierExpression;
 import io.github.bananalang.parse.ast.ImportStatement;
+import io.github.bananalang.parse.ast.ReturnStatement;
 import io.github.bananalang.parse.ast.StatementList;
 import io.github.bananalang.parse.ast.StatementNode;
 import io.github.bananalang.parse.ast.StringExpression;
@@ -49,7 +50,7 @@ public final class BananaCompiler {
 
     private final Deque<Map.Entry<StatementList, Integer>> scopes = new ArrayDeque<>();
     private final Map<String, Integer> variableDeclarations = new HashMap<>();
-    private int currentVariableDecl = 1;
+    private int currentVariableDecl;
 
     private BananaCompiler(Typechecker types, StatementList root, CompileOptions options) {
         this.types = types;
@@ -113,14 +114,54 @@ public final class BananaCompiler {
                 initMethod.visitMaxs(-1, -1);
                 initMethod.visitEnd();
             }
+            for (StatementNode child : root.children) {
+                if (child instanceof FunctionDefinitionStatement) {
+                    FunctionDefinitionStatement functionDefinition = (FunctionDefinitionStatement)child;
+                    ScriptMethod methodDefinition = types.getMethodDefinition(functionDefinition);
+                    StringBuilder descriptor = new StringBuilder("(");
+                    for (EvaluatedType arg : methodDefinition.getArgTypes()) {
+                        descriptor.append(Descriptor.of(arg.getJavassist()));
+                    }
+                    descriptor.append(')').append(Descriptor.of(methodDefinition.getReturnType().getJavassist()));
+                    MethodVisitor mv = result.visitMethod(
+                        Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC,
+                        functionDefinition.name,
+                        descriptor.toString(),
+                        null,
+                        null
+                    );
+                    currentVariableDecl = 0;
+                    for (VariableDeclaration arg : functionDefinition.args) {
+                        if (arg.value != null) {
+                            throw new RuntimeException("Default parameters not supported yet");
+                        }
+                        mv.visitParameter(arg.name, 0);
+                        variableDeclarations.put(arg.name, currentVariableDecl++);
+                    }
+                    mv.visitCode();
+                    compileStatementList(new InstructionAdapter(mv), functionDefinition.body, true);
+                    mv.visitInsn(Opcodes.RETURN);
+                    mv.visitMaxs(-1, -1);
+                    mv.visitEnd();
+                    variableDeclarations.clear();
+                }
+            }
             if (needsMainMethod()) {
-                MethodVisitor mainMethod = result.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, "main", "([Ljava/lang/String;)V", null, null);
+                MethodVisitor mainMethod = result.visitMethod(
+                    Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC,
+                    "main",
+                    "([Ljava/lang/String;)V",
+                    null,
+                    null
+                );
                 mainMethod.visitParameter("args", 0);
                 mainMethod.visitCode();
+                currentVariableDecl = 1;
                 compileStatementList(new InstructionAdapter(mainMethod), root, true);
                 mainMethod.visitInsn(Opcodes.RETURN);
                 mainMethod.visitMaxs(-1, -1);
                 mainMethod.visitEnd();
+                variableDeclarations.clear();
             }
             result.visitEnd();
         }
@@ -143,6 +184,8 @@ public final class BananaCompiler {
                 compileExpressionStatement(method, (ExpressionStatement)child);
             } else if (child instanceof VariableDeclarationStatement) {
                 compileVariableDeclarationStatement(method, (VariableDeclarationStatement)child);
+            } else if (child instanceof ReturnStatement) {
+                compileReturnStatement(method, (ReturnStatement)child);
             } else if (!(child instanceof ImportStatement) && !(child instanceof FunctionDefinitionStatement)) {
                 throw new IllegalArgumentException(child.getClass().getSimpleName() + " not supported for compilation yet");
             }
@@ -150,9 +193,9 @@ public final class BananaCompiler {
         currentVariableDecl = scopes.removeLast().getValue();
     }
 
-    private void compileExpressionStatement(InstructionAdapter method, ExpressionStatement expr) {
-        compileExpression(method, expr.expression);
-        if (!types.getType(expr.expression).getName().equals("void")) {
+    private void compileExpressionStatement(InstructionAdapter method, ExpressionStatement stmt) {
+        compileExpression(method, stmt.expression);
+        if (!types.getType(stmt.expression).getName().equals("void")) {
             method.pop();
         }
     }
@@ -168,6 +211,15 @@ public final class BananaCompiler {
                 currentVariableDecl++;
             }
         }
+    }
+
+    private void compileReturnStatement(InstructionAdapter method, ReturnStatement stmt) {
+        if (stmt.value == null) {
+            method.visitInsn(Opcodes.RETURN);
+            return;
+        }
+        compileExpression(method, stmt.value);
+        method.visitInsn(Opcodes.ARETURN);
     }
 
     private void compileExpression(InstructionAdapter method, ExpressionNode expr) {
