@@ -139,12 +139,13 @@ public final class BananaCompiler {
                         variableDeclarations.put(arg.name, currentVariableDecl++);
                     }
                     mv.visitCode();
-                    compileStatementList(new InstructionAdapter(mv), functionDefinition.body, true);
-                    if (methodDefinition.getReturnType().getName().equals("void")) {
-                        mv.visitInsn(Opcodes.RETURN);
-                    } else {
-                        mv.visitInsn(Opcodes.ACONST_NULL);
-                        mv.visitInsn(Opcodes.ARETURN);
+                    if (!compileStatementList(new InstructionAdapter(mv), functionDefinition.body, true, true)) {
+                        if (methodDefinition.getReturnType().getName().equals("void")) {
+                            mv.visitInsn(Opcodes.RETURN);
+                        } else {
+                            mv.visitInsn(Opcodes.ACONST_NULL);
+                            mv.visitInsn(Opcodes.ARETURN);
+                        }
                     }
                     mv.visitMaxs(-1, -1);
                     mv.visitEnd();
@@ -162,8 +163,9 @@ public final class BananaCompiler {
                 mainMethod.visitParameter("args", 0);
                 mainMethod.visitCode();
                 currentVariableDecl = 1;
-                compileStatementList(new InstructionAdapter(mainMethod), root, true);
-                mainMethod.visitInsn(Opcodes.RETURN);
+                if (!compileStatementList(new InstructionAdapter(mainMethod), root, true, true)) {
+                    mainMethod.visitInsn(Opcodes.RETURN);
+                }
                 mainMethod.visitMaxs(-1, -1);
                 mainMethod.visitEnd();
                 variableDeclarations.clear();
@@ -182,20 +184,27 @@ public final class BananaCompiler {
         return false;
     }
 
-    private void compileStatementList(InstructionAdapter method, StatementList node, boolean skipMethods) {
+    private boolean compileStatementList(InstructionAdapter method, StatementList node, boolean skipMethods, boolean isTopLevel) {
         scopes.addLast(new SimpleImmutableEntry<>(node, currentVariableDecl));
-        for (StatementNode child : node.children) {
+        for (int i = 0; i < node.children.size(); i++) {
+            StatementNode child = node.children.get(i);
             if (child instanceof ExpressionStatement) {
                 compileExpressionStatement(method, (ExpressionStatement)child);
             } else if (child instanceof VariableDeclarationStatement) {
                 compileVariableDeclarationStatement(method, (VariableDeclarationStatement)child);
             } else if (child instanceof ReturnStatement) {
                 compileReturnStatement(method, (ReturnStatement)child);
+                currentVariableDecl = scopes.removeLast().getValue();
+                if (i < node.children.size() - 1) {
+                    throw new IllegalArgumentException("Unreachable code detected");
+                }
+                return true;
             } else if (!(child instanceof ImportStatement) && !(child instanceof FunctionDefinitionStatement)) {
                 throw new IllegalArgumentException(child.getClass().getSimpleName() + " not supported for compilation yet");
             }
         }
         currentVariableDecl = scopes.removeLast().getValue();
+        return false;
     }
 
     private void compileExpressionStatement(InstructionAdapter method, ExpressionStatement stmt) {

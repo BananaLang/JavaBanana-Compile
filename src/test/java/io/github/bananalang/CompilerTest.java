@@ -20,8 +20,12 @@ public class CompilerTest {
             .defaultClassName();
         ClassWriter result = BananaCompiler.compile(
             "def var join(String a, String b) {" +
-                "return a.concat(\" \").concat(b);" +
+                "return concat(a, \" \", b);" +
             "}" +
+            "def String concat(String a, String b, String c) {" +
+                "return a.concat(b).concat(c);" +
+            "}" +
+            "return;" +
             "println(join(\"hello\", \"world\"));",
             compileOptions
         );
