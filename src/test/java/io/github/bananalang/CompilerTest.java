@@ -19,14 +19,13 @@ public class CompilerTest {
             .defaultModuleName()
             .defaultClassName();
         ClassWriter result = BananaCompiler.compile(
-            "def var join(String a, String b) {" +
-                "return concat(a, \" \", b);" +
+            "def var join(String? a, String? b) {" +
+                "return concat(a ?? \"null\", \" \", b ?? \"null\");" +
             "}" +
             "def String concat(String a, String b, String c) {" +
                 "return a.concat(b).concat(c);" +
             "}" +
-            "return;" +
-            "println(join(\"hello\", \"world\"));",
+            "println(join(\"hello\", null));",
             compileOptions
         );
         byte[] classData = result.toByteArray();
@@ -36,6 +35,22 @@ public class CompilerTest {
 
         try (OutputStream out = new FileOutputStream(compileOptions.classFileName())) {
             out.write(classData);
+        }
+
+        System.out.println();
+        try {
+            new BinaryClassLoader()
+                .loadFromBytecode(compileOptions.className(), classData)
+                .getDeclaredMethod("main", String[].class)
+                .invoke(null, new Object[] {args});
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static final class BinaryClassLoader extends ClassLoader {
+        public Class<?> loadFromBytecode(String name, byte[] bytecode) {
+            return super.defineClass(name, bytecode, 0, bytecode.length);
         }
     }
 }

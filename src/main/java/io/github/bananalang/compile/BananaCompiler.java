@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.InstructionAdapter;
@@ -19,12 +20,14 @@ import org.objectweb.asm.commons.InstructionAdapter;
 import io.github.bananalang.parse.Parser;
 import io.github.bananalang.parse.Tokenizer;
 import io.github.bananalang.parse.ast.AccessExpression;
+import io.github.bananalang.parse.ast.BinaryExpression;
 import io.github.bananalang.parse.ast.CallExpression;
 import io.github.bananalang.parse.ast.ExpressionNode;
 import io.github.bananalang.parse.ast.ExpressionStatement;
 import io.github.bananalang.parse.ast.FunctionDefinitionStatement;
 import io.github.bananalang.parse.ast.IdentifierExpression;
 import io.github.bananalang.parse.ast.ImportStatement;
+import io.github.bananalang.parse.ast.NullExpression;
 import io.github.bananalang.parse.ast.ReturnStatement;
 import io.github.bananalang.parse.ast.StatementList;
 import io.github.bananalang.parse.ast.StatementNode;
@@ -238,7 +241,9 @@ public final class BananaCompiler {
 
     private void compileExpression(InstructionAdapter method, ExpressionNode expr) {
         if (expr instanceof StringExpression) {
-            method.visitLdcInsn(((StringExpression)expr).value);
+            method.aconst(((StringExpression)expr).value);
+        } else if (expr instanceof NullExpression) {
+            method.aconst(null);
         } else if (expr instanceof CallExpression) {
             CallExpression callExpr = (CallExpression)expr;
             MethodCall methodToCall = types.getMethodCall(callExpr);
@@ -302,6 +307,22 @@ public final class BananaCompiler {
         } else if (expr instanceof IdentifierExpression) {
             IdentifierExpression identExpr = (IdentifierExpression)expr;
             method.visitVarInsn(Opcodes.ALOAD, variableDeclarations.get(identExpr.identifier));
+        } else if (expr instanceof BinaryExpression) {
+            BinaryExpression binExpr = (BinaryExpression)expr;
+            switch (binExpr.type) {
+                case NULL_COALESCE: {
+                    compileExpression(method, binExpr.left);
+                    Label endLabel = new Label();
+                    method.dup();
+                    method.ifnonnull(endLabel);
+                    method.pop();
+                    compileExpression(method, binExpr.right);
+                    method.visitLabel(endLabel);
+                    break;
+                }
+                default:
+                    throw new AssertionError(binExpr.type);
+            }
         } else {
             throw new IllegalArgumentException(expr.getClass().getSimpleName() + " not supported for compilation yet");
         }
