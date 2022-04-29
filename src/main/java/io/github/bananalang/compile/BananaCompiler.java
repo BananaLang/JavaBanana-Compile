@@ -57,6 +57,8 @@ public final class BananaCompiler {
 
     private final Deque<Map.Entry<StatementList, Scope>> scopes = new ArrayDeque<>();
     private final Map<String, Integer> variableDeclarations = new HashMap<>();
+    private int currentLineNumber;
+    private Label currentLineNumberLabel;
     private boolean isMainMethod;
     private int currentVariableDecl;
 
@@ -271,6 +273,7 @@ public final class BananaCompiler {
     private void compileExpressionStatement(InstructionAdapter method, ExpressionStatement stmt) {
         compileExpression(method, stmt.expression);
         if (!types.getType(stmt.expression).getName().equals("void")) {
+            lineNumber(stmt.row, method);
             method.pop();
         }
     }
@@ -284,6 +287,7 @@ public final class BananaCompiler {
                 variableDeclarations.put(decl.name, currentVariableDecl);
                 Map.Entry<StatementList, Scope> scope = scopes.getLast();
                 scope.getValue().getVarStarts().put(types.getScopes().get(scope.getKey()).get(decl.name), label);
+                lineNumber(stmt.row, method);
                 method.visitVarInsn(Opcodes.ASTORE, currentVariableDecl);
                 currentVariableDecl++;
             }
@@ -293,18 +297,22 @@ public final class BananaCompiler {
     private void compileReturnStatement(InstructionAdapter method, ReturnStatement stmt) {
         if (stmt.value == null) {
             endScope(method);
+            lineNumber(stmt.row, method);
             method.visitInsn(Opcodes.RETURN);
             return;
         }
         compileExpression(method, stmt.value);
         endScope(method);
+        lineNumber(stmt.row, method);
         method.visitInsn(Opcodes.ARETURN);
     }
 
     private void compileExpression(InstructionAdapter method, ExpressionNode expr) {
         if (expr instanceof StringExpression) {
+            lineNumber(expr.row, method);
             method.aconst(((StringExpression)expr).value);
         } else if (expr instanceof NullExpression) {
+            lineNumber(expr.row, method);
             method.aconst(null);
         } else if (expr instanceof CallExpression) {
             CallExpression callExpr = (CallExpression)expr;
@@ -366,6 +374,7 @@ public final class BananaCompiler {
                         : Opcodes.INVOKEVIRTUAL);
                 ownerName = Descriptor.toJvmName(javaMethod.getDeclaringClass());
             }
+            lineNumber(expr.row, method);
             method.visitMethodInsn(
                 opcode,
                 ownerName,
@@ -378,6 +387,7 @@ public final class BananaCompiler {
             }
         } else if (expr instanceof IdentifierExpression) {
             IdentifierExpression identExpr = (IdentifierExpression)expr;
+            lineNumber(expr.row, method);
             method.visitVarInsn(Opcodes.ALOAD, variableDeclarations.get(identExpr.identifier));
         } else if (expr instanceof BinaryExpression) {
             BinaryExpression binExpr = (BinaryExpression)expr;
@@ -397,6 +407,14 @@ public final class BananaCompiler {
             }
         } else {
             throw new IllegalArgumentException(expr.getClass().getSimpleName() + " not supported for compilation yet");
+        }
+    }
+
+    private void lineNumber(int line, InstructionAdapter method) {
+        if (line != currentLineNumber) {
+            currentLineNumber = line;
+            method.visitLabel(currentLineNumberLabel = new Label());
+            method.visitLineNumber(line, currentLineNumberLabel);
         }
     }
 }

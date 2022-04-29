@@ -19,15 +19,15 @@ public class CompilerTest {
             .defaultModuleName()
             .defaultClassName();
         ClassWriter result = BananaCompiler.compile(
-            "def var join(String? a, String? b) {" +
-                "return concat(a ?? \"null\", \" \", b?.concat(\"5\") ?? \"null\");" +
-            "}" +
-            "def String concat(String a, String b, String c) {" +
-                "return a.concat(b).concat(c);" +
-            "}" +
-            "print(\"baba \");" +
-            "def var justAVar = join(\"hello\", \"hi\");" +
-            "println(justAVar);",
+            "def var join(String? a, String? b) {\n" +
+                "return concat(a ?? \"null\", \" \", b?.concat(\"5\") ?? \"null\");\n" +
+            "}\n" +
+            "def String concat(String a, String b, String c) {\n" +
+                "return a.concat(b).concat(c);\n" +
+            "}\n" +
+            "print(\"baba \");\n" +
+            "def var justAVar = join(\"hello\", \"hi\");\n" +
+            "println(justAVar);\n",
             compileOptions
         );
         byte[] classData = result.toByteArray();
