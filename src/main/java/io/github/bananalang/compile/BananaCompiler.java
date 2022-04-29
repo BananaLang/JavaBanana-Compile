@@ -159,13 +159,35 @@ public final class BananaCompiler {
                         variableDeclarations.put(arg.name, currentVariableDecl++);
                     }
                     mv.visitCode();
-                    if (!compileStatementList(new InstructionAdapter(mv), functionDefinition.body, true, true)) {
+                    Label startLabel = new Label();
+                    mv.visitLabel(startLabel);
+                    Label endLabel;
+                    if (
+                        (endLabel = compileStatementList(
+                            new InstructionAdapter(mv),
+                            functionDefinition.body,
+                            true,
+                            true
+                            )
+                        ) == null
+                    ) {
                         if (methodDefinition.getReturnType().getName().equals("void")) {
                             mv.visitInsn(Opcodes.RETURN);
                         } else {
                             mv.visitInsn(Opcodes.ACONST_NULL);
                             mv.visitInsn(Opcodes.ARETURN);
                         }
+                    }
+                    mv.visitLabel(endLabel);
+                    for (int i = 0; i < functionDefinition.args.length; i++) {
+                        mv.visitLocalVariable(
+                            functionDefinition.args[i].name,
+                            Descriptor.of(methodDefinition.getArgTypes()[i].getJavassist()),
+                            null,
+                            startLabel,
+                            endLabel,
+                            i
+                        );
                     }
                     mv.visitMaxs(-1, -1);
                     mv.visitEnd();
@@ -183,7 +205,7 @@ public final class BananaCompiler {
                 mainMethod.visitParameter("args", 0);
                 mainMethod.visitCode();
                 currentVariableDecl = 1;
-                if (!compileStatementList(new InstructionAdapter(mainMethod), root, true, true)) {
+                if (compileStatementList(new InstructionAdapter(mainMethod), root, true, true) == null) {
                     mainMethod.visitInsn(Opcodes.RETURN);
                 }
                 mainMethod.visitMaxs(-1, -1);
@@ -204,7 +226,7 @@ public final class BananaCompiler {
         return false;
     }
 
-    private boolean compileStatementList(InstructionAdapter method, StatementList node, boolean skipMethods, boolean isTopLevel) {
+    private Label compileStatementList(InstructionAdapter method, StatementList node, boolean skipMethods, boolean isTopLevel) {
         scopes.addLast(new SimpleImmutableEntry<>(node, currentVariableDecl));
         for (int i = 0; i < node.children.size(); i++) {
             StatementNode child = node.children.get(i);
@@ -213,18 +235,18 @@ public final class BananaCompiler {
             } else if (child instanceof VariableDeclarationStatement) {
                 compileVariableDeclarationStatement(method, (VariableDeclarationStatement)child);
             } else if (child instanceof ReturnStatement) {
-                compileReturnStatement(method, (ReturnStatement)child);
+                Label endLabel = compileReturnStatement(method, (ReturnStatement)child);
                 currentVariableDecl = scopes.removeLast().getValue();
                 if (i < node.children.size() - 1) {
                     throw new IllegalArgumentException("Unreachable code detected");
                 }
-                return true;
+                return endLabel;
             } else if (!(child instanceof ImportStatement) && !(child instanceof FunctionDefinitionStatement)) {
                 throw new IllegalArgumentException(child.getClass().getSimpleName() + " not supported for compilation yet");
             }
         }
         currentVariableDecl = scopes.removeLast().getValue();
-        return false;
+        return null;
     }
 
     private void compileExpressionStatement(InstructionAdapter method, ExpressionStatement stmt) {
@@ -247,13 +269,17 @@ public final class BananaCompiler {
         }
     }
 
-    private void compileReturnStatement(InstructionAdapter method, ReturnStatement stmt) {
+    private Label compileReturnStatement(InstructionAdapter method, ReturnStatement stmt) {
+        Label endLabel = new Label();
         if (stmt.value == null) {
+            method.visitLabel(endLabel);
             method.visitInsn(Opcodes.RETURN);
-            return;
+            return endLabel;
         }
         compileExpression(method, stmt.value);
+        method.visitLabel(endLabel);
         method.visitInsn(Opcodes.ARETURN);
+        return endLabel;
     }
 
     private void compileExpression(InstructionAdapter method, ExpressionNode expr) {
