@@ -1,6 +1,6 @@
 Classfile /home/josia/BananaLang/JavaBanana-Compile/ModuleTest.class
-  Last modified Apr 29, 2022; size 1132 bytes
-  SHA-256 checksum d0100098265359d3197e78547781812d10881c07e23d8ad342dee1cbd29252cc
+  Last modified Apr 29, 2022; size 1197 bytes
+  SHA-256 checksum c0a33c7623d23a71c6de693a5dc9baa3b943860ad43756dfdf142cfaf4893568
 public class ModuleTest
   minor version: 0
   major version: 52
@@ -43,24 +43,30 @@ Constant pool:
   #32 = Utf8               main
   #33 = Utf8               ([Ljava/lang/String;)V
   #34 = Utf8               args
-  #35 = Utf8               hello
-  #36 = String             #35            // hello
-  #37 = Utf8               hi
-  #38 = String             #37            // hi
-  #39 = NameAndType        #9:#10         // join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #40 = Methodref          #2.#39         // ModuleTest.join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #41 = Utf8               banana/builtin/ModuleBuiltin
-  #42 = Class              #41            // banana/builtin/ModuleBuiltin
-  #43 = Utf8               println
-  #44 = Utf8               (Ljava/lang/String;)V
-  #45 = NameAndType        #43:#44        // println:(Ljava/lang/String;)V
-  #46 = Methodref          #42.#45        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
-  #47 = Utf8               Code
-  #48 = Utf8               StackMapTable
-  #49 = Utf8               LocalVariableTable
-  #50 = Utf8               RuntimeInvisibleAnnotations
-  #51 = Utf8               RuntimeInvisibleParameterAnnotations
-  #52 = Utf8               MethodParameters
+  #35 = Utf8               baba
+  #36 = String             #35            // baba
+  #37 = Utf8               banana/builtin/ModuleBuiltin
+  #38 = Class              #37            // banana/builtin/ModuleBuiltin
+  #39 = Utf8               print
+  #40 = Utf8               (Ljava/lang/String;)V
+  #41 = NameAndType        #39:#40        // print:(Ljava/lang/String;)V
+  #42 = Methodref          #38.#41        // banana/builtin/ModuleBuiltin.print:(Ljava/lang/String;)V
+  #43 = Utf8               hello
+  #44 = String             #43            // hello
+  #45 = Utf8               hi
+  #46 = String             #45            // hi
+  #47 = NameAndType        #9:#10         // join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  #48 = Methodref          #2.#47         // ModuleTest.join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  #49 = Utf8               println
+  #50 = NameAndType        #49:#40        // println:(Ljava/lang/String;)V
+  #51 = Methodref          #38.#50        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+  #52 = Utf8               justAVar
+  #53 = Utf8               Code
+  #54 = Utf8               StackMapTable
+  #55 = Utf8               LocalVariableTable
+  #56 = Utf8               RuntimeInvisibleAnnotations
+  #57 = Utf8               RuntimeInvisibleParameterAnnotations
+  #58 = Utf8               MethodParameters
 {
   private ModuleTest();
     descriptor: ()V
@@ -106,8 +112,8 @@ Constant pool:
           stack = [ class java/lang/String, class java/lang/String, class java/lang/String ]
       LocalVariableTable:
         Start  Length  Slot  Name   Signature
-            0      31     0     a   Ljava/lang/String;
-            0      31     1     b   Ljava/lang/String;
+            0      30     0     a   Ljava/lang/String;
+            0      30     1     b   Ljava/lang/String;
     RuntimeInvisibleAnnotations:
       0: #11()
         banana.internal.annotation.NonNull
@@ -136,9 +142,9 @@ Constant pool:
          9: areturn
       LocalVariableTable:
         Start  Length  Slot  Name   Signature
-            0      10     0     a   Ljava/lang/String;
-            0      10     1     b   Ljava/lang/String;
-            0      10     2     c   Ljava/lang/String;
+            0       9     0     a   Ljava/lang/String;
+            0       9     1     b   Ljava/lang/String;
+            0       9     2     c   Ljava/lang/String;
     RuntimeInvisibleAnnotations:
       0: #11()
         banana.internal.annotation.NonNull
@@ -162,12 +168,19 @@ Constant pool:
     descriptor: ([Ljava/lang/String;)V
     flags: (0x0009) ACC_PUBLIC, ACC_STATIC
     Code:
-      stack=2, locals=1, args_size=1
-         0: ldc           #36                 // String hello
-         2: ldc           #38                 // String hi
-         4: invokestatic  #40                 // Method join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-         7: invokestatic  #46                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
-        10: return
+      stack=2, locals=2, args_size=1
+         0: ldc           #36                 // String baba
+         2: invokestatic  #42                 // Method banana/builtin/ModuleBuiltin.print:(Ljava/lang/String;)V
+         5: ldc           #44                 // String hello
+         7: ldc           #46                 // String hi
+         9: invokestatic  #48                 // Method join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+        12: astore_1
+        13: aload_1
+        14: invokestatic  #51                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+        17: return
+      LocalVariableTable:
+        Start  Length  Slot  Name   Signature
+            5      12     1 justAVar   Ljava/lang/String;
     MethodParameters:
       Name                           Flags
       args

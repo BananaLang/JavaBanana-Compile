@@ -36,6 +36,7 @@ import io.github.bananalang.parse.ast.VariableDeclarationStatement;
 import io.github.bananalang.parse.ast.VariableDeclarationStatement.VariableDeclaration;
 import io.github.bananalang.parse.token.Token;
 import io.github.bananalang.typecheck.EvaluatedType;
+import io.github.bananalang.typecheck.LocalVariable;
 import io.github.bananalang.typecheck.MethodCall;
 import io.github.bananalang.typecheck.ScriptMethod;
 import io.github.bananalang.typecheck.Typechecker;
@@ -54,8 +55,9 @@ public final class BananaCompiler {
     private final CompileOptions options;
     private ClassWriter result;
 
-    private final Deque<Map.Entry<StatementList, Integer>> scopes = new ArrayDeque<>();
+    private final Deque<Map.Entry<StatementList, Scope>> scopes = new ArrayDeque<>();
     private final Map<String, Integer> variableDeclarations = new HashMap<>();
+    private boolean isMainMethod;
     private int currentVariableDecl;
 
     private BananaCompiler(Typechecker types, StatementList root, CompileOptions options) {
@@ -159,35 +161,20 @@ public final class BananaCompiler {
                         variableDeclarations.put(arg.name, currentVariableDecl++);
                     }
                     mv.visitCode();
-                    Label startLabel = new Label();
-                    mv.visitLabel(startLabel);
-                    Label endLabel;
-                    if (
-                        (endLabel = compileStatementList(
-                            new InstructionAdapter(mv),
-                            functionDefinition.body,
-                            true,
-                            true
-                            )
-                        ) == null
-                    ) {
+                    isMainMethod = false;
+                    if (compileStatementList(
+                        new InstructionAdapter(mv),
+                        functionDefinition.body,
+                        functionDefinition.args,
+                        true,
+                        true
+                    )) {
                         if (methodDefinition.getReturnType().getName().equals("void")) {
                             mv.visitInsn(Opcodes.RETURN);
                         } else {
                             mv.visitInsn(Opcodes.ACONST_NULL);
                             mv.visitInsn(Opcodes.ARETURN);
                         }
-                    }
-                    mv.visitLabel(endLabel);
-                    for (int i = 0; i < functionDefinition.args.length; i++) {
-                        mv.visitLocalVariable(
-                            functionDefinition.args[i].name,
-                            Descriptor.of(methodDefinition.getArgTypes()[i].getJavassist()),
-                            null,
-                            startLabel,
-                            endLabel,
-                            i
-                        );
                     }
                     mv.visitMaxs(-1, -1);
                     mv.visitEnd();
@@ -205,7 +192,8 @@ public final class BananaCompiler {
                 mainMethod.visitParameter("args", 0);
                 mainMethod.visitCode();
                 currentVariableDecl = 1;
-                if (compileStatementList(new InstructionAdapter(mainMethod), root, true, true) == null) {
+                isMainMethod = true;
+                if (compileStatementList(new InstructionAdapter(mainMethod), root, null, true, true)) {
                     mainMethod.visitInsn(Opcodes.RETURN);
                 }
                 mainMethod.visitMaxs(-1, -1);
@@ -226,8 +214,22 @@ public final class BananaCompiler {
         return false;
     }
 
-    private Label compileStatementList(InstructionAdapter method, StatementList node, boolean skipMethods, boolean isTopLevel) {
-        scopes.addLast(new SimpleImmutableEntry<>(node, currentVariableDecl));
+    private boolean compileStatementList(
+        InstructionAdapter method,
+        StatementList node,
+        VariableDeclaration[] args,
+        boolean skipMethods,
+        boolean isTopLevel
+    ) {
+        scopes.addLast(new SimpleImmutableEntry<>(node, new Scope(currentVariableDecl)));
+        Scope scope = scopes.getLast().getValue();
+        method.visitLabel(scope.getStartLabel());
+        if (args != null) {
+            Map<String, LocalVariable> localVarScope = types.getScopes().get(node);
+            for (VariableDeclaration arg : args) {
+                scope.getVarStarts().put(localVarScope.get(arg.name), scope.getStartLabel());
+            }
+        }
         for (int i = 0; i < node.children.size(); i++) {
             StatementNode child = node.children.get(i);
             if (child instanceof ExpressionStatement) {
@@ -235,18 +237,34 @@ public final class BananaCompiler {
             } else if (child instanceof VariableDeclarationStatement) {
                 compileVariableDeclarationStatement(method, (VariableDeclarationStatement)child);
             } else if (child instanceof ReturnStatement) {
-                Label endLabel = compileReturnStatement(method, (ReturnStatement)child);
-                currentVariableDecl = scopes.removeLast().getValue();
+                compileReturnStatement(method, (ReturnStatement)child);
                 if (i < node.children.size() - 1) {
                     throw new IllegalArgumentException("Unreachable code detected");
                 }
-                return endLabel;
+                return false;
             } else if (!(child instanceof ImportStatement) && !(child instanceof FunctionDefinitionStatement)) {
                 throw new IllegalArgumentException(child.getClass().getSimpleName() + " not supported for compilation yet");
             }
         }
-        currentVariableDecl = scopes.removeLast().getValue();
-        return null;
+        endScope(method);
+        return true;
+    }
+
+    private void endScope(InstructionAdapter method) {
+        Map.Entry<StatementList, Scope> scope = scopes.removeLast();
+        currentVariableDecl = scope.getValue().getFirstLocal();
+        Label endLabel = new Label();
+        method.visitLabel(endLabel);
+        for (Map.Entry<String, LocalVariable> variable : types.getScopes().get(scope.getKey()).entrySet()) {
+            method.visitLocalVariable(
+                variable.getKey(),
+                Descriptor.of(variable.getValue().getType().getJavassist()),
+                null,
+                scope.getValue().getVarStarts().get(variable.getValue()),
+                endLabel,
+                variable.getValue().getIndex() + (isMainMethod ? 1 : 0)
+            );
+        }
     }
 
     private void compileExpressionStatement(InstructionAdapter method, ExpressionStatement stmt) {
@@ -257,29 +275,29 @@ public final class BananaCompiler {
     }
 
     private void compileVariableDeclarationStatement(InstructionAdapter method, VariableDeclarationStatement stmt) {
-        // Map<String, EvaluatedType> scopeTypes = types.getScopes().get(scopes.peekLast().getKey());
+        Label label = new Label();
+        method.visitLabel(label);
         for (VariableDeclaration decl : stmt.declarations) {
             if (decl.value != null) {
-                // CtClass type = scopeTypes.get(decl.name).getJavassist();
                 compileExpression(method, decl.value);
                 variableDeclarations.put(decl.name, currentVariableDecl);
+                Map.Entry<StatementList, Scope> scope = scopes.getLast();
+                scope.getValue().getVarStarts().put(types.getScopes().get(scope.getKey()).get(decl.name), label);
                 method.visitVarInsn(Opcodes.ASTORE, currentVariableDecl);
                 currentVariableDecl++;
             }
         }
     }
 
-    private Label compileReturnStatement(InstructionAdapter method, ReturnStatement stmt) {
-        Label endLabel = new Label();
+    private void compileReturnStatement(InstructionAdapter method, ReturnStatement stmt) {
         if (stmt.value == null) {
-            method.visitLabel(endLabel);
+            endScope(method);
             method.visitInsn(Opcodes.RETURN);
-            return endLabel;
+            return;
         }
         compileExpression(method, stmt.value);
-        method.visitLabel(endLabel);
+        endScope(method);
         method.visitInsn(Opcodes.ARETURN);
-        return endLabel;
     }
 
     private void compileExpression(InstructionAdapter method, ExpressionNode expr) {

@@ -25,7 +25,9 @@ public class CompilerTest {
             "def String concat(String a, String b, String c) {" +
                 "return a.concat(b).concat(c);" +
             "}" +
-            "println(join(\"hello\", \"hi\"));",
+            "print(\"baba \");" +
+            "def var justAVar = join(\"hello\", \"hi\");" +
+            "println(justAVar);",
             compileOptions
         );
         byte[] classData = result.toByteArray();
