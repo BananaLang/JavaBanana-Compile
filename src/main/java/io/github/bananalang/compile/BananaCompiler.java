@@ -249,6 +249,7 @@ public final class BananaCompiler {
             MethodCall methodToCall = types.getMethodCall(callExpr);
             int opcode;
             String ownerName, descriptor;
+            Label safeNavigationLabel = null;
             if (methodToCall.isScriptMethod()) {
                 for (ExpressionNode arg : callExpr.args) {
                     compileExpression(method, arg);
@@ -267,7 +268,13 @@ public final class BananaCompiler {
                 CtMethod javaMethod = methodToCall.getJavaMethod();
                 boolean isStatic = Modifier.isStatic(javaMethod.getModifiers());
                 if (callExpr.target instanceof AccessExpression && !isStatic) {
-                    compileExpression(method, ((AccessExpression)callExpr.target).target);
+                    AccessExpression accessExpr = (AccessExpression)callExpr.target;
+                    compileExpression(method, accessExpr.target);
+                    if (accessExpr.safeNavigation) {
+                        safeNavigationLabel = new Label();
+                        method.dup();
+                        method.ifnull(safeNavigationLabel);
+                    }
                 }
                 descriptor = javaMethod.getMethodInfo().getDescriptor();
                 if (Modifier.isVarArgs(javaMethod.getModifiers())) {
@@ -304,6 +311,9 @@ public final class BananaCompiler {
                 descriptor,
                 opcode == Opcodes.INVOKEINTERFACE
             );
+            if (safeNavigationLabel != null) {
+                method.visitLabel(safeNavigationLabel);
+            }
         } else if (expr instanceof IdentifierExpression) {
             IdentifierExpression identExpr = (IdentifierExpression)expr;
             method.visitVarInsn(Opcodes.ALOAD, variableDeclarations.get(identExpr.identifier));

@@ -20,12 +20,12 @@ public class CompilerTest {
             .defaultClassName();
         ClassWriter result = BananaCompiler.compile(
             "def var join(String? a, String? b) {" +
-                "return concat(a ?? \"null\", \" \", b ?? \"null\");" +
+                "return concat(a ?? \"null\", \" \", b?.concat(\"5\") ?? \"null\");" +
             "}" +
             "def String concat(String a, String b, String c) {" +
                 "return a.concat(b).concat(c);" +
             "}" +
-            "println(join(\"hello\", null));",
+            "println(join(\"hello\", \"hi\"));",
             compileOptions
         );
         byte[] classData = result.toByteArray();
