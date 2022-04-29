@@ -113,6 +113,7 @@ public final class BananaCompiler {
         if (result == null) {
             result = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
             result.visit(52, Opcodes.ACC_PUBLIC, options.className(), null, "java/lang/Object", null);
+            result.visitSource(options.sourceFileName(), null);
             {
                 MethodVisitor initMethod = result.visitMethod(Opcodes.ACC_PRIVATE, "<init>", "()V", null, null);
                 initMethod.visitCode();

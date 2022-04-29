@@ -1,72 +1,75 @@
 Classfile /home/josia/BananaLang/JavaBanana-Compile/ModuleTest.class
-  Last modified Apr 29, 2022; size 1197 bytes
-  SHA-256 checksum c0a33c7623d23a71c6de693a5dc9baa3b943860ad43756dfdf142cfaf4893568
+  Last modified Apr 29, 2022; size 1228 bytes
+  SHA-256 checksum 370a642c35c9bf8cf67532c8d678cc184855878603062ca8c8af67fcd518bc1c
+  Compiled from "test.ba"
 public class ModuleTest
   minor version: 0
   major version: 52
   flags: (0x0001) ACC_PUBLIC
   this_class: #2                          // ModuleTest
   super_class: #4                         // java/lang/Object
-  interfaces: 0, fields: 0, methods: 4, attributes: 0
+  interfaces: 0, fields: 0, methods: 4, attributes: 1
 Constant pool:
    #1 = Utf8               ModuleTest
    #2 = Class              #1             // ModuleTest
    #3 = Utf8               java/lang/Object
    #4 = Class              #3             // java/lang/Object
-   #5 = Utf8               <init>
-   #6 = Utf8               ()V
-   #7 = NameAndType        #5:#6          // "<init>":()V
-   #8 = Methodref          #4.#7          // java/lang/Object."<init>":()V
-   #9 = Utf8               join
-  #10 = Utf8               (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #11 = Utf8               Lbanana/internal/annotation/NonNull;
-  #12 = Utf8               a
-  #13 = Utf8               Lbanana/internal/annotation/Nullable;
-  #14 = Utf8               b
-  #15 = Utf8               null
-  #16 = String             #15            // null
-  #17 = Utf8
-  #18 = String             #17            //
-  #19 = Utf8               5
-  #20 = String             #19            // 5
-  #21 = Utf8               java/lang/String
-  #22 = Class              #21            // java/lang/String
-  #23 = Utf8               concat
-  #24 = Utf8               (Ljava/lang/String;)Ljava/lang/String;
-  #25 = NameAndType        #23:#24        // concat:(Ljava/lang/String;)Ljava/lang/String;
-  #26 = Methodref          #22.#25        // java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
-  #27 = Utf8               (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #28 = NameAndType        #23:#27        // concat:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #29 = Methodref          #2.#28         // ModuleTest.concat:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #30 = Utf8               Ljava/lang/String;
-  #31 = Utf8               c
-  #32 = Utf8               main
-  #33 = Utf8               ([Ljava/lang/String;)V
-  #34 = Utf8               args
-  #35 = Utf8               baba
-  #36 = String             #35            // baba
-  #37 = Utf8               banana/builtin/ModuleBuiltin
-  #38 = Class              #37            // banana/builtin/ModuleBuiltin
-  #39 = Utf8               print
-  #40 = Utf8               (Ljava/lang/String;)V
-  #41 = NameAndType        #39:#40        // print:(Ljava/lang/String;)V
-  #42 = Methodref          #38.#41        // banana/builtin/ModuleBuiltin.print:(Ljava/lang/String;)V
-  #43 = Utf8               hello
-  #44 = String             #43            // hello
-  #45 = Utf8               hi
-  #46 = String             #45            // hi
-  #47 = NameAndType        #9:#10         // join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #48 = Methodref          #2.#47         // ModuleTest.join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #49 = Utf8               println
-  #50 = NameAndType        #49:#40        // println:(Ljava/lang/String;)V
-  #51 = Methodref          #38.#50        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
-  #52 = Utf8               justAVar
-  #53 = Utf8               Code
-  #54 = Utf8               StackMapTable
-  #55 = Utf8               LocalVariableTable
-  #56 = Utf8               RuntimeInvisibleAnnotations
-  #57 = Utf8               RuntimeInvisibleParameterAnnotations
-  #58 = Utf8               MethodParameters
+   #5 = Utf8               test.ba
+   #6 = Utf8               <init>
+   #7 = Utf8               ()V
+   #8 = NameAndType        #6:#7          // "<init>":()V
+   #9 = Methodref          #4.#8          // java/lang/Object."<init>":()V
+  #10 = Utf8               join
+  #11 = Utf8               (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  #12 = Utf8               Lbanana/internal/annotation/NonNull;
+  #13 = Utf8               a
+  #14 = Utf8               Lbanana/internal/annotation/Nullable;
+  #15 = Utf8               b
+  #16 = Utf8               null
+  #17 = String             #16            // null
+  #18 = Utf8
+  #19 = String             #18            //
+  #20 = Utf8               5
+  #21 = String             #20            // 5
+  #22 = Utf8               java/lang/String
+  #23 = Class              #22            // java/lang/String
+  #24 = Utf8               concat
+  #25 = Utf8               (Ljava/lang/String;)Ljava/lang/String;
+  #26 = NameAndType        #24:#25        // concat:(Ljava/lang/String;)Ljava/lang/String;
+  #27 = Methodref          #23.#26        // java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
+  #28 = Utf8               (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  #29 = NameAndType        #24:#28        // concat:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  #30 = Methodref          #2.#29         // ModuleTest.concat:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  #31 = Utf8               Ljava/lang/String;
+  #32 = Utf8               c
+  #33 = Utf8               main
+  #34 = Utf8               ([Ljava/lang/String;)V
+  #35 = Utf8               args
+  #36 = Utf8               baba
+  #37 = String             #36            // baba
+  #38 = Utf8               banana/builtin/ModuleBuiltin
+  #39 = Class              #38            // banana/builtin/ModuleBuiltin
+  #40 = Utf8               print
+  #41 = Utf8               (Ljava/lang/String;)V
+  #42 = NameAndType        #40:#41        // print:(Ljava/lang/String;)V
+  #43 = Methodref          #39.#42        // banana/builtin/ModuleBuiltin.print:(Ljava/lang/String;)V
+  #44 = Utf8               hello
+  #45 = String             #44            // hello
+  #46 = Utf8               hi
+  #47 = String             #46            // hi
+  #48 = NameAndType        #10:#11        // join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  #49 = Methodref          #2.#48         // ModuleTest.join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  #50 = Utf8               println
+  #51 = NameAndType        #50:#41        // println:(Ljava/lang/String;)V
+  #52 = Methodref          #39.#51        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+  #53 = Utf8               justAVar
+  #54 = Utf8               Code
+  #55 = Utf8               StackMapTable
+  #56 = Utf8               LocalVariableTable
+  #57 = Utf8               RuntimeInvisibleAnnotations
+  #58 = Utf8               RuntimeInvisibleParameterAnnotations
+  #59 = Utf8               MethodParameters
+  #60 = Utf8               SourceFile
 {
   private ModuleTest();
     descriptor: ()V
@@ -74,7 +77,7 @@ Constant pool:
     Code:
       stack=1, locals=1, args_size=1
          0: aload_0
-         1: invokespecial #8                  // Method java/lang/Object."<init>":()V
+         1: invokespecial #9                  // Method java/lang/Object."<init>":()V
          4: return
 
   private static java.lang.String join(java.lang.String, java.lang.String);
@@ -86,18 +89,18 @@ Constant pool:
          1: dup
          2: ifnonnull     8
          5: pop
-         6: ldc           #16                 // String null
-         8: ldc           #18                 // String
+         6: ldc           #17                 // String null
+         8: ldc           #19                 // String
         10: aload_1
         11: dup
         12: ifnull        20
-        15: ldc           #20                 // String 5
-        17: invokevirtual #26                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
+        15: ldc           #21                 // String 5
+        17: invokevirtual #27                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
         20: dup
         21: ifnonnull     27
         24: pop
-        25: ldc           #16                 // String null
-        27: invokestatic  #29                 // Method concat:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+        25: ldc           #17                 // String null
+        27: invokestatic  #30                 // Method concat:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
         30: areturn
       StackMapTable: number_of_entries = 3
         frame_type = 72 /* same_locals_1_stack_item */
@@ -115,14 +118,14 @@ Constant pool:
             0      30     0     a   Ljava/lang/String;
             0      30     1     b   Ljava/lang/String;
     RuntimeInvisibleAnnotations:
-      0: #11()
+      0: #12()
         banana.internal.annotation.NonNull
     RuntimeInvisibleParameterAnnotations:
       parameter 0:
-        0: #13()
+        0: #14()
           banana.internal.annotation.Nullable
       parameter 1:
-        0: #13()
+        0: #14()
           banana.internal.annotation.Nullable
     MethodParameters:
       Name                           Flags
@@ -136,9 +139,9 @@ Constant pool:
       stack=2, locals=3, args_size=3
          0: aload_0
          1: aload_1
-         2: invokevirtual #26                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
+         2: invokevirtual #27                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
          5: aload_2
-         6: invokevirtual #26                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
+         6: invokevirtual #27                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
          9: areturn
       LocalVariableTable:
         Start  Length  Slot  Name   Signature
@@ -146,17 +149,17 @@ Constant pool:
             0       9     1     b   Ljava/lang/String;
             0       9     2     c   Ljava/lang/String;
     RuntimeInvisibleAnnotations:
-      0: #11()
+      0: #12()
         banana.internal.annotation.NonNull
     RuntimeInvisibleParameterAnnotations:
       parameter 0:
-        0: #11()
+        0: #12()
           banana.internal.annotation.NonNull
       parameter 1:
-        0: #11()
+        0: #12()
           banana.internal.annotation.NonNull
       parameter 2:
-        0: #11()
+        0: #12()
           banana.internal.annotation.NonNull
     MethodParameters:
       Name                           Flags
@@ -169,14 +172,14 @@ Constant pool:
     flags: (0x0009) ACC_PUBLIC, ACC_STATIC
     Code:
       stack=2, locals=2, args_size=1
-         0: ldc           #36                 // String baba
-         2: invokestatic  #42                 // Method banana/builtin/ModuleBuiltin.print:(Ljava/lang/String;)V
-         5: ldc           #44                 // String hello
-         7: ldc           #46                 // String hi
-         9: invokestatic  #48                 // Method join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+         0: ldc           #37                 // String baba
+         2: invokestatic  #43                 // Method banana/builtin/ModuleBuiltin.print:(Ljava/lang/String;)V
+         5: ldc           #45                 // String hello
+         7: ldc           #47                 // String hi
+         9: invokestatic  #49                 // Method join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
         12: astore_1
         13: aload_1
-        14: invokestatic  #51                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+        14: invokestatic  #52                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
         17: return
       LocalVariableTable:
         Start  Length  Slot  Name   Signature
@@ -185,3 +188,4 @@ Constant pool:
       Name                           Flags
       args
 }
+SourceFile: "test.ba"
