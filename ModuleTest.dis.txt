@@ -1,6 +1,6 @@
 Classfile /home/josia/BananaLang/JavaBanana-Compile/ModuleTest.class
-  Last modified Apr 28, 2022; size 808 bytes
-  SHA-256 checksum 10eb04c4a03afd1f15230ec759952412ce29d4254e0b70844cc3b9b1e0d98aa5
+  Last modified Apr 29, 2022; size 1024 bytes
+  SHA-256 checksum cab964838ddbceed25b146b00d3e0d25b73cb3b2906f81695f96edbd45154d95
 public class ModuleTest
   minor version: 0
   major version: 52
@@ -19,42 +19,46 @@ Constant pool:
    #8 = Methodref          #4.#7          // java/lang/Object."<init>":()V
    #9 = Utf8               join
   #10 = Utf8               (Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #11 = Utf8               a
-  #12 = Utf8               b
-  #13 = Utf8               null
-  #14 = String             #13            // null
-  #15 = Utf8
-  #16 = String             #15            //
-  #17 = Utf8               5
-  #18 = String             #17            // 5
-  #19 = Utf8               java/lang/String
-  #20 = Class              #19            // java/lang/String
-  #21 = Utf8               concat
-  #22 = Utf8               (Ljava/lang/String;)Ljava/lang/String;
-  #23 = NameAndType        #21:#22        // concat:(Ljava/lang/String;)Ljava/lang/String;
-  #24 = Methodref          #20.#23        // java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
-  #25 = Utf8               (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #26 = NameAndType        #21:#25        // concat:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #27 = Methodref          #2.#26         // ModuleTest.concat:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #28 = Utf8               c
-  #29 = Utf8               main
-  #30 = Utf8               ([Ljava/lang/String;)V
-  #31 = Utf8               args
-  #32 = Utf8               hello
-  #33 = String             #32            // hello
-  #34 = Utf8               hi
-  #35 = String             #34            // hi
-  #36 = NameAndType        #9:#10         // join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #37 = Methodref          #2.#36         // ModuleTest.join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #38 = Utf8               banana/builtin/ModuleBuiltin
-  #39 = Class              #38            // banana/builtin/ModuleBuiltin
-  #40 = Utf8               println
-  #41 = Utf8               (Ljava/lang/String;)V
-  #42 = NameAndType        #40:#41        // println:(Ljava/lang/String;)V
-  #43 = Methodref          #39.#42        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
-  #44 = Utf8               Code
-  #45 = Utf8               StackMapTable
-  #46 = Utf8               MethodParameters
+  #11 = Utf8               Lbanana/internal/annotation/NonNull;
+  #12 = Utf8               a
+  #13 = Utf8               Lbanana/internal/annotation/Nullable;
+  #14 = Utf8               b
+  #15 = Utf8               null
+  #16 = String             #15            // null
+  #17 = Utf8
+  #18 = String             #17            //
+  #19 = Utf8               5
+  #20 = String             #19            // 5
+  #21 = Utf8               java/lang/String
+  #22 = Class              #21            // java/lang/String
+  #23 = Utf8               concat
+  #24 = Utf8               (Ljava/lang/String;)Ljava/lang/String;
+  #25 = NameAndType        #23:#24        // concat:(Ljava/lang/String;)Ljava/lang/String;
+  #26 = Methodref          #22.#25        // java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
+  #27 = Utf8               (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  #28 = NameAndType        #23:#27        // concat:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  #29 = Methodref          #2.#28         // ModuleTest.concat:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  #30 = Utf8               c
+  #31 = Utf8               main
+  #32 = Utf8               ([Ljava/lang/String;)V
+  #33 = Utf8               args
+  #34 = Utf8               hello
+  #35 = String             #34            // hello
+  #36 = Utf8               hi
+  #37 = String             #36            // hi
+  #38 = NameAndType        #9:#10         // join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  #39 = Methodref          #2.#38         // ModuleTest.join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  #40 = Utf8               banana/builtin/ModuleBuiltin
+  #41 = Class              #40            // banana/builtin/ModuleBuiltin
+  #42 = Utf8               println
+  #43 = Utf8               (Ljava/lang/String;)V
+  #44 = NameAndType        #42:#43        // println:(Ljava/lang/String;)V
+  #45 = Methodref          #41.#44        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+  #46 = Utf8               Code
+  #47 = Utf8               StackMapTable
+  #48 = Utf8               RuntimeInvisibleAnnotations
+  #49 = Utf8               RuntimeInvisibleParameterAnnotations
+  #50 = Utf8               MethodParameters
 {
   private ModuleTest();
     descriptor: ()V
@@ -74,18 +78,18 @@ Constant pool:
          1: dup
          2: ifnonnull     8
          5: pop
-         6: ldc           #14                 // String null
-         8: ldc           #16                 // String
+         6: ldc           #16                 // String null
+         8: ldc           #18                 // String
         10: aload_1
         11: dup
         12: ifnull        20
-        15: ldc           #18                 // String 5
-        17: invokevirtual #24                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
+        15: ldc           #20                 // String 5
+        17: invokevirtual #26                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
         20: dup
         21: ifnonnull     27
         24: pop
-        25: ldc           #14                 // String null
-        27: invokestatic  #27                 // Method concat:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+        25: ldc           #16                 // String null
+        27: invokestatic  #29                 // Method concat:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
         30: areturn
       StackMapTable: number_of_entries = 3
         frame_type = 72 /* same_locals_1_stack_item */
@@ -98,6 +102,16 @@ Constant pool:
           offset_delta = 6
           locals = [ class java/lang/String, class java/lang/String ]
           stack = [ class java/lang/String, class java/lang/String, class java/lang/String ]
+    RuntimeInvisibleAnnotations:
+      0: #11()
+        banana.internal.annotation.NonNull
+    RuntimeInvisibleParameterAnnotations:
+      parameter 0:
+        0: #13()
+          banana.internal.annotation.Nullable
+      parameter 1:
+        0: #13()
+          banana.internal.annotation.Nullable
     MethodParameters:
       Name                           Flags
       a
@@ -110,10 +124,23 @@ Constant pool:
       stack=2, locals=3, args_size=3
          0: aload_0
          1: aload_1
-         2: invokevirtual #24                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
+         2: invokevirtual #26                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
          5: aload_2
-         6: invokevirtual #24                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
+         6: invokevirtual #26                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
          9: areturn
+    RuntimeInvisibleAnnotations:
+      0: #11()
+        banana.internal.annotation.NonNull
+    RuntimeInvisibleParameterAnnotations:
+      parameter 0:
+        0: #11()
+          banana.internal.annotation.NonNull
+      parameter 1:
+        0: #11()
+          banana.internal.annotation.NonNull
+      parameter 2:
+        0: #11()
+          banana.internal.annotation.NonNull
     MethodParameters:
       Name                           Flags
       a
@@ -125,10 +152,10 @@ Constant pool:
     flags: (0x0009) ACC_PUBLIC, ACC_STATIC
     Code:
       stack=2, locals=1, args_size=1
-         0: ldc           #33                 // String hello
-         2: ldc           #35                 // String hi
-         4: invokestatic  #37                 // Method join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-         7: invokestatic  #43                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+         0: ldc           #35                 // String hello
+         2: ldc           #37                 // String hi
+         4: invokestatic  #39                 // Method join:(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+         7: invokestatic  #45                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
         10: return
     MethodParameters:
       Name                           Flags

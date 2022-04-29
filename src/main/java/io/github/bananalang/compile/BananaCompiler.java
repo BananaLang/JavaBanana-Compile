@@ -46,6 +46,9 @@ import javassist.Modifier;
 import javassist.bytecode.Descriptor;
 
 public final class BananaCompiler {
+    private static final String NULLABLE_ANNOTATION = "Lbanana/internal/annotation/Nullable;";
+    private static final String NONNULL_ANNOTATION = "Lbanana/internal/annotation/NonNull;";
+
     private final Typechecker types;
     private final StatementList root;
     private final CompileOptions options;
@@ -133,12 +136,26 @@ public final class BananaCompiler {
                         null,
                         null
                     );
+                    if (!methodDefinition.getReturnType().getName().equals("void")) {
+                        mv.visitAnnotation(
+                            methodDefinition.getReturnType().isNullable()
+                                ? NULLABLE_ANNOTATION
+                                : NONNULL_ANNOTATION,
+                            false
+                        );
+                    }
                     currentVariableDecl = 0;
                     for (VariableDeclaration arg : functionDefinition.args) {
                         if (arg.value != null) {
                             throw new RuntimeException("Default parameters not supported yet");
                         }
+                        EvaluatedType type = methodDefinition.getArgTypes()[currentVariableDecl];
                         mv.visitParameter(arg.name, 0);
+                        mv.visitParameterAnnotation(
+                            currentVariableDecl,
+                            type.isNullable() ? NULLABLE_ANNOTATION : NONNULL_ANNOTATION,
+                            false
+                        );
                         variableDeclarations.put(arg.name, currentVariableDecl++);
                     }
                     mv.visitCode();
