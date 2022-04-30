@@ -7,7 +7,7 @@ import java.io.Reader;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayDeque;
 import java.util.Deque;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -56,10 +56,8 @@ public final class BananaCompiler {
     private ClassWriter result;
 
     private final Deque<Map.Entry<StatementList, Scope>> scopes = new ArrayDeque<>();
-    private final Map<String, Integer> variableDeclarations = new HashMap<>();
     private int currentLineNumber;
     private Label currentLineNumberLabel;
-    private boolean isMainMethod;
     private int currentVariableDecl;
 
     private BananaCompiler(Typechecker types, StatementList root, CompileOptions options) {
@@ -161,10 +159,9 @@ public final class BananaCompiler {
                             type.isNullable() ? NULLABLE_ANNOTATION : NONNULL_ANNOTATION,
                             false
                         );
-                        variableDeclarations.put(arg.name, currentVariableDecl++);
+                        addLocal(arg.name, currentVariableDecl++);
                     }
                     mv.visitCode();
-                    isMainMethod = false;
                     if (compileStatementList(
                         new InstructionAdapter(mv),
                         functionDefinition.body,
@@ -181,7 +178,6 @@ public final class BananaCompiler {
                     }
                     mv.visitMaxs(-1, -1);
                     mv.visitEnd();
-                    variableDeclarations.clear();
                 }
             }
             if (needsMainMethod()) {
@@ -195,13 +191,11 @@ public final class BananaCompiler {
                 mainMethod.visitParameter("args", 0);
                 mainMethod.visitCode();
                 currentVariableDecl = 1;
-                isMainMethod = true;
                 if (compileStatementList(new InstructionAdapter(mainMethod), root, null, true, true)) {
                     mainMethod.visitInsn(Opcodes.RETURN);
                 }
                 mainMethod.visitMaxs(-1, -1);
                 mainMethod.visitEnd();
-                variableDeclarations.clear();
             }
             result.visitEnd();
         }
@@ -228,14 +222,16 @@ public final class BananaCompiler {
         Scope scope = scopes.getLast().getValue();
         method.visitLabel(scope.getStartLabel());
         if (args != null) {
-            Map<String, LocalVariable> localVarScope = types.getScopes().get(node);
+            Map<String, LocalVariable> localVarScope = types.getScope(node);
             for (VariableDeclaration arg : args) {
                 scope.getVarStarts().put(localVarScope.get(arg.name), scope.getStartLabel());
             }
         }
         for (int i = 0; i < node.children.size(); i++) {
             StatementNode child = node.children.get(i);
-            if (child instanceof ExpressionStatement) {
+            if (child instanceof StatementList) {
+                compileStatementList(method, (StatementList)child, null, false, false);
+            } else if (child instanceof ExpressionStatement) {
                 compileExpressionStatement(method, (ExpressionStatement)child);
             } else if (child instanceof VariableDeclarationStatement) {
                 compileVariableDeclarationStatement(method, (VariableDeclarationStatement)child);
@@ -258,14 +254,14 @@ public final class BananaCompiler {
         currentVariableDecl = scope.getValue().getFirstLocal();
         Label endLabel = new Label();
         method.visitLabel(endLabel);
-        for (Map.Entry<String, LocalVariable> variable : types.getScopes().get(scope.getKey()).entrySet()) {
+        for (Map.Entry<String, LocalVariable> variable : types.getScope(scope.getKey()).entrySet()) {
             method.visitLocalVariable(
                 variable.getKey(),
                 Descriptor.of(variable.getValue().getType().getJavassist()),
                 null,
                 scope.getValue().getVarStarts().get(variable.getValue()),
                 endLabel,
-                variable.getValue().getIndex() + (isMainMethod ? 1 : 0)
+                variable.getValue().getIndex() + currentVariableDecl
             );
         }
     }
@@ -284,9 +280,9 @@ public final class BananaCompiler {
         for (VariableDeclaration decl : stmt.declarations) {
             if (decl.value != null) {
                 compileExpression(method, decl.value);
-                variableDeclarations.put(decl.name, currentVariableDecl);
+                addLocal(decl.name, currentVariableDecl);
                 Map.Entry<StatementList, Scope> scope = scopes.getLast();
-                scope.getValue().getVarStarts().put(types.getScopes().get(scope.getKey()).get(decl.name), label);
+                scope.getValue().getVarStarts().put(types.getScope(scope.getKey()).get(decl.name), label);
                 lineNumber(stmt.row, method);
                 method.visitVarInsn(Opcodes.ASTORE, currentVariableDecl);
                 currentVariableDecl++;
@@ -388,7 +384,7 @@ public final class BananaCompiler {
         } else if (expr instanceof IdentifierExpression) {
             IdentifierExpression identExpr = (IdentifierExpression)expr;
             lineNumber(expr.row, method);
-            method.visitVarInsn(Opcodes.ALOAD, variableDeclarations.get(identExpr.identifier));
+            method.visitVarInsn(Opcodes.ALOAD, findLocal(identExpr.identifier));
         } else if (expr instanceof BinaryExpression) {
             BinaryExpression binExpr = (BinaryExpression)expr;
             switch (binExpr.type) {
@@ -408,6 +404,22 @@ public final class BananaCompiler {
         } else {
             throw new IllegalArgumentException(expr.getClass().getSimpleName() + " not supported for compilation yet");
         }
+    }
+
+    private void addLocal(String name, int index) {
+        scopes.getLast().getValue().getLocals().put(name, index);
+    }
+
+    private int findLocal(String name) {
+        Iterator<Map.Entry<StatementList, Scope>> iterator = scopes.descendingIterator();
+        while (iterator.hasNext()) {
+            Scope scope = iterator.next().getValue();
+            Integer local = scope.getLocals().get(name);
+            if (local != null) {
+                return local;
+            }
+        }
+        return -1; // Shouldn't happen!
     }
 
     private void lineNumber(int line, InstructionAdapter method) {

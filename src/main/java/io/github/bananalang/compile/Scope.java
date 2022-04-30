@@ -1,5 +1,6 @@
 package io.github.bananalang.compile;
 
+import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
 
@@ -11,11 +12,13 @@ public final class Scope {
     private final Label startLabel;
     private final int firstLocal;
     private final Map<LocalVariable, Label> varStarts;
+    private final Map<String, Integer> locals;
 
     public Scope(int firstLocal) {
         this.startLabel = new Label();
         this.firstLocal = firstLocal;
         this.varStarts = new IdentityHashMap<>();
+        this.locals = new HashMap<>();
     }
 
     public Label getStartLabel() {
@@ -28,5 +31,9 @@ public final class Scope {
 
     public Map<LocalVariable, Label> getVarStarts() {
         return varStarts;
+    }
+
+    public Map<String, Integer> getLocals() {
+        return locals;
     }
 }
