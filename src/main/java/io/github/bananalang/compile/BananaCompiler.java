@@ -279,94 +279,62 @@ public final class BananaCompiler {
     }
 
     private boolean compileIfOrWhileStatement(InstructionAdapter method, IfOrWhileStatement stmt) {
+        Label conditionLabel = null;
         if (stmt.isWhile) {
-            Label conditionLabel = new Label();
+            conditionLabel = new Label();
             method.visitLabel(conditionLabel);
-            Label endLabelWithPop = new Label();
-            Label endLabelNoPop = new Label();
-            compileExpression(method, stmt.condition);
-            EvaluatedType expressionType = types.getType(stmt.condition);
-            lineNumber(stmt.row, method);
-            MethodCall handler = types.getMethodCall(stmt);
-            if (expressionType.isNullable()) {
-                if (handler != null) {
-                    method.dup();
-                    method.ifnull(endLabelWithPop);
-                } else {
-                    method.ifnull(endLabelNoPop);
-                }
-            }
-            boolean neverending = false;
+        }
+        Label endLabelWithPop = new Label();
+        Label endLabelNoPop = new Label();
+        compileExpression(method, stmt.condition);
+        EvaluatedType expressionType = types.getType(stmt.condition);
+        lineNumber(stmt.row, method);
+        MethodCall handler = types.getMethodCall(stmt);
+        if (expressionType.isNullable()) {
             if (handler != null) {
-                CtClass declaringClass = handler.getJavaMethod().getDeclaringClass();
-                boolean isInterface = declaringClass.isInterface();
-                method.visitMethodInsn(
-                    isInterface ? Opcodes.INVOKEINTERFACE : Opcodes.INVOKEVIRTUAL,
-                    Descriptor.toJvmName(declaringClass),
-                    handler.getName(),
-                    handler.getJavaMethod().getSignature(),
-                    isInterface
-                );
-                if (handler.getName().equals("truthy")) {
-                    method.ifeq(endLabelNoPop);
-                } else {
-                    method.ifne(endLabelNoPop);
-                }
-            } else if (!expressionType.isNullable()) {
-                method.pop();
+                method.dup();
+                method.ifnull(endLabelWithPop);
+            } else {
+                method.ifnull(endLabelNoPop);
+            }
+        }
+        boolean neverending = false;
+        if (handler != null) {
+            CtClass declaringClass = handler.getJavaMethod().getDeclaringClass();
+            boolean isInterface = declaringClass.isInterface();
+            method.visitMethodInsn(
+                isInterface ? Opcodes.INVOKEINTERFACE : Opcodes.INVOKEVIRTUAL,
+                Descriptor.toJvmName(declaringClass),
+                handler.getName(),
+                handler.getJavaMethod().getSignature(),
+                isInterface
+            );
+            if (handler.getName().equals("truthy")) {
+                method.ifeq(endLabelNoPop);
+            } else {
+                method.ifne(endLabelNoPop);
+            }
+        } else if (!expressionType.isNullable()) {
+            method.pop();
+            if (stmt.isWhile) {
                 neverending = true;
             }
-            compileStatement(method, stmt.body);
-            method.goTo(conditionLabel);
-            if (expressionType.isNullable() && handler != null) {
-                method.visitLabel(endLabelWithPop);
-                method.pop();
-            }
-            if (neverending) {
-                return true;
-            }
-            method.visitLabel(endLabelNoPop);
-        } else {
-            Label endLabelWithPop = new Label();
-            Label endLabelNoPop = new Label();
-            compileExpression(method, stmt.condition);
-            EvaluatedType expressionType = types.getType(stmt.condition);
-            lineNumber(stmt.row, method);
-            MethodCall handler = types.getMethodCall(stmt);
-            if (expressionType.isNullable()) {
-                if (handler != null) {
-                    method.dup();
-                    method.ifnull(endLabelWithPop);
-                } else {
-                    method.ifnull(endLabelNoPop);
-                }
-            }
-            if (handler != null) {
-                CtClass declaringClass = handler.getJavaMethod().getDeclaringClass();
-                boolean isInterface = declaringClass.isInterface();
-                method.visitMethodInsn(
-                    isInterface ? Opcodes.INVOKEINTERFACE : Opcodes.INVOKEVIRTUAL,
-                    Descriptor.toJvmName(declaringClass),
-                    handler.getName(),
-                    handler.getJavaMethod().getSignature(),
-                    isInterface
-                );
-                if (handler.getName().equals("truthy")) {
-                    method.ifeq(endLabelNoPop);
-                } else {
-                    method.ifne(endLabelNoPop);
-                }
-            } else if (!expressionType.isNullable()) {
-                method.pop();
-            }
-            compileStatement(method, stmt.body);
-            if (expressionType.isNullable() && handler != null) {
-                method.goTo(endLabelNoPop);
-                method.visitLabel(endLabelWithPop);
-                method.pop();
-            }
-            method.visitLabel(endLabelNoPop);
         }
+        compileStatement(method, stmt.body);
+        if (stmt.isWhile) {
+            method.goTo(conditionLabel);
+        }
+        if (expressionType.isNullable() && handler != null) {
+            if (!stmt.isWhile) {
+                method.goTo(endLabelNoPop);
+            }
+            method.visitLabel(endLabelWithPop);
+            method.pop();
+        }
+        if (neverending) {
+            return true;
+        }
+        method.visitLabel(endLabelNoPop);
         return false;
     }
 
