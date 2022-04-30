@@ -332,6 +332,7 @@ public final class BananaCompiler {
             method.pop();
         }
         if (neverending) {
+            endScope(method);
             return true;
         }
         method.visitLabel(endLabelNoPop);
@@ -354,15 +355,15 @@ public final class BananaCompiler {
         Label label = new Label();
         method.visitLabel(label);
         for (VariableDeclaration decl : stmt.declarations) {
+            addLocal(decl.name, currentVariableDecl);
+            Map.Entry<StatementList, Scope> scope = scopes.getLast();
+            scope.getValue().getVarStarts().put(types.getScope(scope.getKey()).get(decl.name), label);
             if (decl.value != null) {
                 compileExpression(method, decl.value);
-                addLocal(decl.name, currentVariableDecl);
-                Map.Entry<StatementList, Scope> scope = scopes.getLast();
-                scope.getValue().getVarStarts().put(types.getScope(scope.getKey()).get(decl.name), label);
                 lineNumber(stmt.row, method);
                 method.visitVarInsn(Opcodes.ASTORE, currentVariableDecl);
-                currentVariableDecl++;
             }
+            currentVariableDecl++;
         }
     }
 

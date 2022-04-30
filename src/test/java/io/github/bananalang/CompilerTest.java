@@ -25,7 +25,8 @@ public class CompilerTest {
                 "println(b);\n" +
                 "a = null;\n" +
             "}\n" +
-            "if (a)\n" +
+            "def String? b;" +
+            "if (b = null)\n" +
                 "println(\"dos\");\n" +
             "while (\"\".getClass()) {\n" +
                 "println(\"tres\");\n" +

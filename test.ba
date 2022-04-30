@@ -4,7 +4,8 @@ while (a) {
     println(b);
     a = null;
 }
-if (a)
+def String?
+if (b = null)
     println("dos");
 while ("".getClass()) {
     println("tres");

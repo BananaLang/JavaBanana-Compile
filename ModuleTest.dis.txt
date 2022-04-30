@@ -1,6 +1,6 @@
 Classfile /home/josia/BananaLang/JavaBanana-Compile/ModuleTest.class
-  Last modified Apr 30, 2022; size 692 bytes
-  SHA-256 checksum 5aa0173eafbdac0d7f3a64950c4d35a108154708cf967db6c1c8f81e1dc0f419
+  Last modified Apr 30, 2022; size 706 bytes
+  SHA-256 checksum 708e1144f234222341f704fb4509062ba4ef5bb0434d3658d67bb60d22e66901
   Compiled from "test.ba"
 public class ModuleTest
   minor version: 0
@@ -50,12 +50,13 @@ Constant pool:
   #38 = Methodref          #4.#37         // java/lang/Object.getClass:()Ljava/lang/Class;
   #39 = Utf8               tres
   #40 = String             #39            // tres
-  #41 = Utf8               Code
-  #42 = Utf8               StackMapTable
-  #43 = Utf8               LineNumberTable
-  #44 = Utf8               LocalVariableTable
-  #45 = Utf8               MethodParameters
-  #46 = Utf8               SourceFile
+  #41 = Utf8               a
+  #42 = Utf8               Code
+  #43 = Utf8               StackMapTable
+  #44 = Utf8               LineNumberTable
+  #45 = Utf8               LocalVariableTable
+  #46 = Utf8               MethodParameters
+  #47 = Utf8               SourceFile
 {
   private ModuleTest();
     descriptor: ()V
@@ -86,31 +87,28 @@ Constant pool:
         22: astore_1
         23: goto          3
         26: pop
-        27: aload_1
+        27: aconst_null
         28: dup
-        29: ifnull        46
-        32: invokevirtual #20                 // Method java/lang/String.isEmpty:()Z
-        35: ifne          47
-        38: ldc           #32                 // String dos
-        40: invokestatic  #28                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
-        43: goto          47
-        46: pop
-        47: ldc           #34                 // String
-        49: invokevirtual #38                 // Method java/lang/Object.getClass:()Ljava/lang/Class;
-        52: pop
-        53: ldc           #40                 // String tres
-        55: invokestatic  #28                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
-        58: goto          47
-      StackMapTable: number_of_entries = 5
+        29: astore_2
+        30: ifnull        38
+        33: ldc           #32                 // String dos
+        35: invokestatic  #28                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+        38: ldc           #34                 // String
+        40: invokevirtual #38                 // Method java/lang/Object.getClass:()Ljava/lang/Class;
+        43: pop
+        44: ldc           #40                 // String tres
+        46: invokestatic  #28                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+        49: goto          38
+      StackMapTable: number_of_entries = 4
         frame_type = 252 /* append */
           offset_delta = 3
           locals = [ class java/lang/String ]
         frame_type = 86 /* same_locals_1_stack_item */
           stack = [ class java/lang/String ]
         frame_type = 0 /* same */
-        frame_type = 82 /* same_locals_1_stack_item */
-          stack = [ class java/lang/String ]
-        frame_type = 0 /* same */
+        frame_type = 252 /* append */
+          offset_delta = 10
+          locals = [ null ]
       LineNumberTable:
         line 1: 0
         line 2: 3
@@ -118,12 +116,14 @@ Constant pool:
         line 4: 17
         line 5: 21
         line 7: 27
-        line 8: 38
-        line 9: 47
-        line 10: 53
+        line 8: 33
+        line 9: 38
+        line 10: 44
       LocalVariableTable:
         Start  Length  Slot  Name   Signature
            14       9     2     b   Ljava/lang/String;
+            0      52     1     a   Ljava/lang/String;
+           27      25     2     b   Ljava/lang/String;
     MethodParameters:
       Name                           Flags
       args
