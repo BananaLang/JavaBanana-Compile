@@ -20,14 +20,14 @@ public class CompilerTest {
             .defaultClassName();
         ClassWriter result = BananaCompiler.compile(
             "def String? a = \"hello\";\n" +
-            "if (a) {\n" +
+            "while (a) {\n" +
                 "def var b = \"uno\";\n" +
                 "println(b);\n" +
+                "a = null;\n" +
             "}\n" +
-            "a = null;\n" +
             "if (a)\n" +
                 "println(\"dos\");\n" +
-            "if (\"\".getClass()) {\n" +
+            "while (\"\".getClass()) {\n" +
                 "println(\"tres\");\n" +
             "}\n",
             compileOptions
@@ -45,8 +45,8 @@ public class CompilerTest {
         try {
             new BinaryClassLoader()
                 .loadFromBytecode(compileOptions.className(), classData)
-                .getDeclaredMethod("main", String[].class)
-                .invoke(null, new Object[] {args});
+                .getDeclaredMethod("main", String[].class);
+                // .invoke(null, new Object[] {args});
         } catch (Exception e) {
             e.printStackTrace();
         }

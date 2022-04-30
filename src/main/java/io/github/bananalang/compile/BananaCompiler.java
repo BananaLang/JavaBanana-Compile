@@ -218,7 +218,7 @@ public final class BananaCompiler {
         if (stmt instanceof StatementList) {
             compileStatementList(method, (StatementList)stmt, null, false, false);
         } else if (stmt instanceof IfOrWhileStatement) {
-            compileIfOrWhileStatement(method, (IfOrWhileStatement)stmt);
+            return compileIfOrWhileStatement(method, (IfOrWhileStatement)stmt);
         } else if (stmt instanceof ExpressionStatement) {
             compileExpressionStatement(method, (ExpressionStatement)stmt);
         } else if (stmt instanceof VariableDeclarationStatement) {
@@ -278,9 +278,54 @@ public final class BananaCompiler {
         }
     }
 
-    private void compileIfOrWhileStatement(InstructionAdapter method, IfOrWhileStatement stmt) {
+    private boolean compileIfOrWhileStatement(InstructionAdapter method, IfOrWhileStatement stmt) {
         if (stmt.isWhile) {
-            throw new IllegalArgumentException("while not supported yet");
+            Label conditionLabel = new Label();
+            method.visitLabel(conditionLabel);
+            Label endLabelWithPop = new Label();
+            Label endLabelNoPop = new Label();
+            compileExpression(method, stmt.condition);
+            EvaluatedType expressionType = types.getType(stmt.condition);
+            lineNumber(stmt.row, method);
+            MethodCall handler = types.getMethodCall(stmt);
+            if (expressionType.isNullable()) {
+                if (handler != null) {
+                    method.dup();
+                    method.ifnull(endLabelWithPop);
+                } else {
+                    method.ifnull(endLabelNoPop);
+                }
+            }
+            boolean neverending = false;
+            if (handler != null) {
+                CtClass declaringClass = handler.getJavaMethod().getDeclaringClass();
+                boolean isInterface = declaringClass.isInterface();
+                method.visitMethodInsn(
+                    isInterface ? Opcodes.INVOKEINTERFACE : Opcodes.INVOKEVIRTUAL,
+                    Descriptor.toJvmName(declaringClass),
+                    handler.getName(),
+                    handler.getJavaMethod().getSignature(),
+                    isInterface
+                );
+                if (handler.getName().equals("truthy")) {
+                    method.ifeq(endLabelNoPop);
+                } else {
+                    method.ifne(endLabelNoPop);
+                }
+            } else if (!expressionType.isNullable()) {
+                method.pop();
+                neverending = true;
+            }
+            compileStatement(method, stmt.body);
+            method.goTo(conditionLabel);
+            if (expressionType.isNullable() && handler != null) {
+                method.visitLabel(endLabelWithPop);
+                method.pop();
+            }
+            if (neverending) {
+                return true;
+            }
+            method.visitLabel(endLabelNoPop);
         } else {
             Label endLabelWithPop = new Label();
             Label endLabelNoPop = new Label();
@@ -311,6 +356,8 @@ public final class BananaCompiler {
                 } else {
                     method.ifne(endLabelNoPop);
                 }
+            } else if (!expressionType.isNullable()) {
+                method.pop();
             }
             compileStatement(method, stmt.body);
             if (expressionType.isNullable() && handler != null) {
@@ -320,6 +367,7 @@ public final class BananaCompiler {
             }
             method.visitLabel(endLabelNoPop);
         }
+        return false;
     }
 
     private void compileExpressionStatement(InstructionAdapter method, ExpressionStatement stmt) {

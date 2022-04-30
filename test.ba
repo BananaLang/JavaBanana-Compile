@@ -1,11 +1,11 @@
 def String? a = "hello";
-if (a) {
-    println("uno");
+while (a) {
+    def var b = "uno";
+    println(b);
+    a = null;
 }
-a = null;
-if (a) {
+if (a)
     println("dos");
-}
-if ("".getClass()) {
+while ("".getClass()) {
     println("tres");
 }
