@@ -1,6 +1,6 @@
 Classfile /home/josia/BananaLang/JavaBanana-Compile/ModuleTest.class
-  Last modified Apr 29, 2022; size 558 bytes
-  SHA-256 checksum d32471f72cd971166e2741bffaa23b6db1e06de40bcdc6628922410b53282a8d
+  Last modified Apr 30, 2022; size 722 bytes
+  SHA-256 checksum af7dfb35cbe21ba1bace09b241056451b17902f05cde6b580ec36bdaf072ab68
   Compiled from "test.ba"
 public class ModuleTest
   minor version: 0
@@ -24,27 +24,40 @@ Constant pool:
   #12 = Utf8               args
   #13 = Utf8               hello
   #14 = String             #13            // hello
-  #15 = Utf8               getClass
-  #16 = Utf8               ()Ljava/lang/Class;
-  #17 = NameAndType        #15:#16        // getClass:()Ljava/lang/Class;
-  #18 = Methodref          #4.#17         // java/lang/Object.getClass:()Ljava/lang/Class;
-  #19 = Utf8               banana/builtin/ModuleBuiltin
-  #20 = Class              #19            // banana/builtin/ModuleBuiltin
-  #21 = Utf8               println
-  #22 = Utf8               (Ljava/lang/Object;)V
-  #23 = NameAndType        #21:#22        // println:(Ljava/lang/Object;)V
-  #24 = Methodref          #20.#23        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/Object;)V
-  #25 = Utf8               a
-  #26 = Utf8               Ljava/lang/Class;
-  #27 = Utf8               (Ljava/lang/String;)V
-  #28 = NameAndType        #21:#27        // println:(Ljava/lang/String;)V
-  #29 = Methodref          #20.#28        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
-  #30 = Utf8               Ljava/lang/String;
-  #31 = Utf8               Code
-  #32 = Utf8               LineNumberTable
-  #33 = Utf8               LocalVariableTable
-  #34 = Utf8               MethodParameters
-  #35 = Utf8               SourceFile
+  #15 = Utf8               java/lang/String
+  #16 = Class              #15            // java/lang/String
+  #17 = Utf8               isEmpty
+  #18 = Utf8               ()Z
+  #19 = NameAndType        #17:#18        // isEmpty:()Z
+  #20 = Methodref          #16.#19        // java/lang/String.isEmpty:()Z
+  #21 = Utf8               uno
+  #22 = String             #21            // uno
+  #23 = Utf8               banana/builtin/ModuleBuiltin
+  #24 = Class              #23            // banana/builtin/ModuleBuiltin
+  #25 = Utf8               println
+  #26 = Utf8               (Ljava/lang/String;)V
+  #27 = NameAndType        #25:#26        // println:(Ljava/lang/String;)V
+  #28 = Methodref          #24.#27        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+  #29 = Utf8               dos
+  #30 = String             #29            // dos
+  #31 = Utf8
+  #32 = String             #31            //
+  #33 = Utf8               getClass
+  #34 = Utf8               ()Ljava/lang/Class;
+  #35 = NameAndType        #33:#34        // getClass:()Ljava/lang/Class;
+  #36 = Methodref          #4.#35         // java/lang/Object.getClass:()Ljava/lang/Class;
+  #37 = Utf8               tres
+  #38 = String             #37            // tres
+  #39 = Utf8               a
+  #40 = Utf8               Ljava/lang/String;
+  #41 = Utf8               [Ljava/lang/String;
+  #42 = Class              #41            // "[Ljava/lang/String;"
+  #43 = Utf8               Code
+  #44 = Utf8               StackMapTable
+  #45 = Utf8               LineNumberTable
+  #46 = Utf8               LocalVariableTable
+  #47 = Utf8               MethodParameters
+  #48 = Utf8               SourceFile
 {
   private ModuleTest();
     descriptor: ()V
@@ -59,23 +72,57 @@ Constant pool:
     descriptor: ([Ljava/lang/String;)V
     flags: (0x0009) ACC_PUBLIC, ACC_STATIC
     Code:
-      stack=1, locals=3, args_size=1
+      stack=2, locals=2, args_size=1
          0: ldc           #14                 // String hello
          2: astore_1
          3: aload_1
-         4: invokevirtual #18                 // Method java/lang/Object.getClass:()Ljava/lang/Class;
-         7: astore_2
-         8: aload_2
-         9: invokestatic  #24                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/Object;)V
-        12: aload_1
-        13: invokestatic  #29                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
-        16: return
+         4: dup
+         5: ifnull        22
+         8: invokevirtual #20                 // Method java/lang/String.isEmpty:()Z
+        11: ifne          23
+        14: ldc           #22                 // String uno
+        16: invokestatic  #28                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+        19: goto          23
+        22: pop
+        23: aconst_null
+        24: astore_1
+        25: aload_1
+        26: dup
+        27: ifnull        44
+        30: invokevirtual #20                 // Method java/lang/String.isEmpty:()Z
+        33: ifne          45
+        36: ldc           #30                 // String dos
+        38: invokestatic  #28                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+        41: goto          45
+        44: pop
+        45: ldc           #32                 // String
+        47: invokevirtual #36                 // Method java/lang/Object.getClass:()Ljava/lang/Class;
+        50: ldc           #38                 // String tres
+        52: invokestatic  #28                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+        55: return
+      StackMapTable: number_of_entries = 4
+        frame_type = 255 /* full_frame */
+          offset_delta = 22
+          locals = [ class "[Ljava/lang/String;", class java/lang/String ]
+          stack = [ class java/lang/String ]
+        frame_type = 0 /* same */
+        frame_type = 255 /* full_frame */
+          offset_delta = 20
+          locals = [ class "[Ljava/lang/String;", null ]
+          stack = [ null ]
+        frame_type = 0 /* same */
       LineNumberTable:
         line 1: 0
+        line 2: 3
+        line 3: 14
+        line 5: 23
+        line 6: 25
+        line 7: 36
+        line 9: 45
+        line 10: 50
       LocalVariableTable:
         Start  Length  Slot  Name   Signature
-            3       9     2     a   Ljava/lang/Class;
-            0      16     1     a   Ljava/lang/String;
+            0      55     1     a   Ljava/lang/String;
     MethodParameters:
       Name                           Flags
       args

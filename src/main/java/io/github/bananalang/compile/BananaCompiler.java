@@ -20,12 +20,14 @@ import org.objectweb.asm.commons.InstructionAdapter;
 import io.github.bananalang.parse.Parser;
 import io.github.bananalang.parse.Tokenizer;
 import io.github.bananalang.parse.ast.AccessExpression;
+import io.github.bananalang.parse.ast.AssignmentExpression;
 import io.github.bananalang.parse.ast.BinaryExpression;
 import io.github.bananalang.parse.ast.CallExpression;
 import io.github.bananalang.parse.ast.ExpressionNode;
 import io.github.bananalang.parse.ast.ExpressionStatement;
 import io.github.bananalang.parse.ast.FunctionDefinitionStatement;
 import io.github.bananalang.parse.ast.IdentifierExpression;
+import io.github.bananalang.parse.ast.IfOrWhileStatement;
 import io.github.bananalang.parse.ast.ImportStatement;
 import io.github.bananalang.parse.ast.NullExpression;
 import io.github.bananalang.parse.ast.ReturnStatement;
@@ -41,6 +43,7 @@ import io.github.bananalang.typecheck.MethodCall;
 import io.github.bananalang.typecheck.ScriptMethod;
 import io.github.bananalang.typecheck.Typechecker;
 import javassist.ClassPool;
+import javassist.CtClass;
 import javassist.CtMethod;
 import javassist.LoaderClassPath;
 import javassist.Modifier;
@@ -231,6 +234,8 @@ public final class BananaCompiler {
             StatementNode child = node.children.get(i);
             if (child instanceof StatementList) {
                 compileStatementList(method, (StatementList)child, null, false, false);
+            } else if (child instanceof IfOrWhileStatement) {
+                compileIfOrWhileStatement(method, (IfOrWhileStatement)child);
             } else if (child instanceof ExpressionStatement) {
                 compileExpressionStatement(method, (ExpressionStatement)child);
             } else if (child instanceof VariableDeclarationStatement) {
@@ -266,11 +271,59 @@ public final class BananaCompiler {
         }
     }
 
-    private void compileExpressionStatement(InstructionAdapter method, ExpressionStatement stmt) {
-        compileExpression(method, stmt.expression);
-        if (!types.getType(stmt.expression).getName().equals("void")) {
+    private void compileIfOrWhileStatement(InstructionAdapter method, IfOrWhileStatement stmt) {
+        if (stmt.isWhile) {
+            throw new IllegalArgumentException("while not supported yet");
+        } else {
+            Label endLabelWithPop = new Label();
+            Label endLabelNoPop = new Label();
+            compileExpression(method, stmt.condition);
+            EvaluatedType expressionType = types.getType(stmt.condition);
             lineNumber(stmt.row, method);
-            method.pop();
+            MethodCall handler = types.getMethodCall(stmt);
+            if (expressionType.isNullable()) {
+                if (handler != null) {
+                    method.dup();
+                    method.ifnull(endLabelWithPop);
+                } else {
+                    method.ifnull(endLabelNoPop);
+                }
+            }
+            if (handler != null) {
+                CtClass declaringClass = handler.getJavaMethod().getDeclaringClass();
+                boolean isInterface = declaringClass.isInterface();
+                method.visitMethodInsn(
+                    isInterface ? Opcodes.INVOKEINTERFACE : Opcodes.INVOKEVIRTUAL,
+                    Descriptor.toJvmName(declaringClass),
+                    handler.getName(),
+                    handler.getJavaMethod().getSignature(),
+                    isInterface
+                );
+                if (handler.getName().equals("truthy")) {
+                    method.ifeq(endLabelNoPop);
+                } else {
+                    method.ifne(endLabelNoPop);
+                }
+            }
+            compileStatementList(method, (StatementList)stmt.body, null, false, false);
+            if (expressionType.isNullable() && handler != null) {
+                method.goTo(endLabelNoPop);
+                method.visitLabel(endLabelWithPop);
+                method.pop();
+            }
+            method.visitLabel(endLabelNoPop);
+        }
+    }
+
+    private void compileExpressionStatement(InstructionAdapter method, ExpressionStatement stmt) {
+        if (stmt.expression instanceof AssignmentExpression) {
+            compileAssignmentExpression(method, (AssignmentExpression)stmt.expression, false);
+        } else {
+            compileExpression(method, stmt.expression);
+            if (!types.getType(stmt.expression).getName().equals("void")) {
+                lineNumber(stmt.row, method);
+                method.pop();
+            }
         }
     }
 
@@ -342,7 +395,7 @@ public final class BananaCompiler {
                         method.ifnull(safeNavigationLabel);
                     }
                 }
-                descriptor = javaMethod.getMethodInfo().getDescriptor();
+                descriptor = javaMethod.getSignature();
                 if (Modifier.isVarArgs(javaMethod.getModifiers())) {
                     int actualArgCount = Descriptor.numOfParameters(descriptor);
                     for (int i = 0; i < actualArgCount - 1; i++) {
@@ -401,8 +454,25 @@ public final class BananaCompiler {
                 default:
                     throw new AssertionError(binExpr.type);
             }
+        } else if (expr instanceof AssignmentExpression) {
+            compileAssignmentExpression(method, (AssignmentExpression)expr, true);
         } else {
             throw new IllegalArgumentException(expr.getClass().getSimpleName() + " not supported for compilation yet");
+        }
+    }
+
+    private void compileAssignmentExpression(InstructionAdapter method, AssignmentExpression expr, boolean dup) {
+        compileExpression(method, expr.value);
+        if (expr.target instanceof IdentifierExpression) {
+            lineNumber(expr.row, method);
+            if (dup) {
+                method.dup();
+            }
+            method.visitVarInsn(Opcodes.ASTORE, findLocal(((IdentifierExpression)expr.target).identifier));
+        } else {
+            throw new IllegalArgumentException(
+                "Can't assign to " + expr.target.getClass().getSimpleName() + " yet"
+            );
         }
     }
 
