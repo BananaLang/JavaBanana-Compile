@@ -214,6 +214,24 @@ public final class BananaCompiler {
         return false;
     }
 
+    private boolean compileStatement(InstructionAdapter method, StatementNode stmt) {
+        if (stmt instanceof StatementList) {
+            compileStatementList(method, (StatementList)stmt, null, false, false);
+        } else if (stmt instanceof IfOrWhileStatement) {
+            compileIfOrWhileStatement(method, (IfOrWhileStatement)stmt);
+        } else if (stmt instanceof ExpressionStatement) {
+            compileExpressionStatement(method, (ExpressionStatement)stmt);
+        } else if (stmt instanceof VariableDeclarationStatement) {
+            compileVariableDeclarationStatement(method, (VariableDeclarationStatement)stmt);
+        } else if (stmt instanceof ReturnStatement) {
+            compileReturnStatement(method, (ReturnStatement)stmt);
+            return true;
+        } else if (!(stmt instanceof ImportStatement) && !(stmt instanceof FunctionDefinitionStatement)) {
+            throw new IllegalArgumentException(stmt.getClass().getSimpleName() + " not supported for compilation yet");
+        }
+        return false;
+    }
+
     private boolean compileStatementList(
         InstructionAdapter method,
         StatementList node,
@@ -232,22 +250,11 @@ public final class BananaCompiler {
         }
         for (int i = 0; i < node.children.size(); i++) {
             StatementNode child = node.children.get(i);
-            if (child instanceof StatementList) {
-                compileStatementList(method, (StatementList)child, null, false, false);
-            } else if (child instanceof IfOrWhileStatement) {
-                compileIfOrWhileStatement(method, (IfOrWhileStatement)child);
-            } else if (child instanceof ExpressionStatement) {
-                compileExpressionStatement(method, (ExpressionStatement)child);
-            } else if (child instanceof VariableDeclarationStatement) {
-                compileVariableDeclarationStatement(method, (VariableDeclarationStatement)child);
-            } else if (child instanceof ReturnStatement) {
-                compileReturnStatement(method, (ReturnStatement)child);
+            if (compileStatement(method, child)) {
                 if (i < node.children.size() - 1) {
                     throw new IllegalArgumentException("Unreachable code detected");
                 }
                 return false;
-            } else if (!(child instanceof ImportStatement) && !(child instanceof FunctionDefinitionStatement)) {
-                throw new IllegalArgumentException(child.getClass().getSimpleName() + " not supported for compilation yet");
             }
         }
         endScope(method);
@@ -305,7 +312,7 @@ public final class BananaCompiler {
                     method.ifne(endLabelNoPop);
                 }
             }
-            compileStatementList(method, (StatementList)stmt.body, null, false, false);
+            compileStatement(method, stmt.body);
             if (expressionType.isNullable() && handler != null) {
                 method.goTo(endLabelNoPop);
                 method.visitLabel(endLabelWithPop);

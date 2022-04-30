@@ -21,12 +21,12 @@ public class CompilerTest {
         ClassWriter result = BananaCompiler.compile(
             "def String? a = \"hello\";\n" +
             "if (a) {\n" +
-                "println(\"uno\");\n" +
+                "def var b = \"uno\";\n" +
+                "println(b);\n" +
             "}\n" +
             "a = null;\n" +
-            "if (a) {\n" +
+            "if (a)\n" +
                 "println(\"dos\");\n" +
-            "}\n" +
             "if (\"\".getClass()) {\n" +
                 "println(\"tres\");\n" +
             "}\n",
