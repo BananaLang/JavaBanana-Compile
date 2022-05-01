@@ -19,17 +19,11 @@ public class CompilerTest {
             .defaultModuleName()
             .defaultClassName();
         ClassWriter result = BananaCompiler.compile(
-            "def String? a = \"hello\";\n" +
-            "while (a) {\n" +
-                "def var b = \"uno\";\n" +
-                "println(b);\n" +
-                "a = null;\n" +
-            "}\n" +
-            "def String? b;" +
-            "if (b = null)\n" +
-                "println(\"dos\");\n" +
-            "while (\"\".getClass()) {\n" +
-                "println(\"tres\");\n" +
+            "def var a = null;\n" +
+            "if (a) {\n" +
+                "println(a);\n" +
+            "} else {\n" +
+                "println(\"twas null\");\n" +
             "}\n",
             compileOptions
         );
@@ -46,8 +40,8 @@ public class CompilerTest {
         try {
             new BinaryClassLoader()
                 .loadFromBytecode(compileOptions.className(), classData)
-                .getDeclaredMethod("main", String[].class);
-                // .invoke(null, new Object[] {args});
+                .getDeclaredMethod("main", String[].class)
+                .invoke(null, new Object[] {args});
         } catch (Exception e) {
             e.printStackTrace();
         }

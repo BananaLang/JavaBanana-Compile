@@ -1,12 +1,6 @@
-def String? a = "hello";
-while (a) {
-    def var b = "uno";
-    println(b);
-    a = null;
-}
-def String?
-if (b = null)
-    println("dos");
-while ("".getClass()) {
-    println("tres");
+def var a = null;
+if (a) {
+    println(a);
+} else {
+    println("twas null");
 }

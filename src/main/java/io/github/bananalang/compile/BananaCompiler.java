@@ -132,9 +132,9 @@ public final class BananaCompiler {
                     ScriptMethod methodDefinition = types.getMethodDefinition(functionDefinition);
                     StringBuilder descriptor = new StringBuilder("(");
                     for (EvaluatedType arg : methodDefinition.getArgTypes()) {
-                        descriptor.append(Descriptor.of(arg.getJavassist()));
+                        descriptor.append(arg.getDescriptor());
                     }
-                    descriptor.append(')').append(Descriptor.of(methodDefinition.getReturnType().getJavassist()));
+                    descriptor.append(')').append(methodDefinition.getReturnType().getDescriptor());
                     MethodVisitor mv = result.visitMethod(
                         Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC,
                         functionDefinition.name,
@@ -269,7 +269,7 @@ public final class BananaCompiler {
         for (Map.Entry<String, LocalVariable> variable : types.getScope(scope.getKey()).entrySet()) {
             method.visitLocalVariable(
                 variable.getKey(),
-                Descriptor.of(variable.getValue().getType().getJavassist()),
+                variable.getValue().getType().getDescriptor(),
                 null,
                 scope.getValue().getVarStarts().get(variable.getValue()),
                 endLabel,
@@ -321,12 +321,17 @@ public final class BananaCompiler {
             }
         }
         compileStatement(method, stmt.body);
+        Label endElseLabel = new Label();
         if (stmt.isWhile) {
             method.goTo(conditionLabel);
+        } else if (stmt.elseBody != null) {
+            method.goTo(endElseLabel);
         }
         if (expressionType.isNullable() && handler != null) {
             if (!stmt.isWhile) {
-                method.goTo(endLabelNoPop);
+                if (stmt.elseBody == null) {
+                    method.goTo(endLabelNoPop);
+                }
             }
             method.visitLabel(endLabelWithPop);
             method.pop();
@@ -336,6 +341,10 @@ public final class BananaCompiler {
             return true;
         }
         method.visitLabel(endLabelNoPop);
+        if (stmt.elseBody != null) {
+            compileStatement(method, stmt.elseBody);
+            method.visitLabel(endElseLabel);
+        }
         return false;
     }
 
@@ -402,10 +411,10 @@ public final class BananaCompiler {
                 ownerName = options.className();
                 StringBuilder descriptorBuilder = new StringBuilder("(");
                 for (EvaluatedType argType : scriptMethod.getArgTypes()) {
-                    descriptorBuilder.append(Descriptor.of(argType.getJavassist()));
+                    descriptorBuilder.append(argType.getDescriptor());
                 }
                 descriptor = descriptorBuilder.append(')')
-                    .append(Descriptor.of(scriptMethod.getReturnType().getJavassist()))
+                    .append(scriptMethod.getReturnType().getDescriptor())
                     .toString();
             } else {
                 CtMethod javaMethod = methodToCall.getJavaMethod();
