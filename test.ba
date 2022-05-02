@@ -1,6 +1,6 @@
-def var a = null;
-if (a) {
-    println(a);
-} else {
-    println("twas null");
+def var test() {
+    hello = null;
+    println(hello ?? "banana");
 }
+def public String hello = "Hello world!";
+test();
