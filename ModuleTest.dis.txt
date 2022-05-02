@@ -1,6 +1,6 @@
 Classfile /home/josia/BananaLang/JavaBanana-Compile/ModuleTest.class
-  Last modified May 2, 2022; size 631 bytes
-  SHA-256 checksum 95886762efc4e37562c3b187ab5fbebd8598bd6dd543102ca67ab181d98f049a
+  Last modified May 2, 2022; size 658 bytes
+  SHA-256 checksum a06b9de4e2ace4d42877e97325cbb075fa53dbdf5771326b3269b4e075fd9151
   Compiled from "test.ba"
 public class ModuleTest
   minor version: 0
@@ -38,14 +38,16 @@ Constant pool:
   #26 = Utf8               main
   #27 = Utf8               ([Ljava/lang/String;)V
   #28 = Utf8               args
-  #29 = NameAndType        #10:#7         // test:()V
-  #30 = Methodref          #2.#29         // ModuleTest.test:()V
-  #31 = Utf8               RuntimeInvisibleAnnotations
-  #32 = Utf8               Code
-  #33 = Utf8               StackMapTable
-  #34 = Utf8               LineNumberTable
-  #35 = Utf8               MethodParameters
-  #36 = Utf8               SourceFile
+  #29 = Utf8               Hello world!
+  #30 = String             #29            // Hello world!
+  #31 = NameAndType        #10:#7         // test:()V
+  #32 = Methodref          #2.#31         // ModuleTest.test:()V
+  #33 = Utf8               RuntimeInvisibleAnnotations
+  #34 = Utf8               Code
+  #35 = Utf8               StackMapTable
+  #36 = Utf8               LineNumberTable
+  #37 = Utf8               MethodParameters
+  #38 = Utf8               SourceFile
 {
   public static java.lang.String hello;
     descriptor: Ljava/lang/String;
@@ -68,31 +70,34 @@ Constant pool:
     flags: (0x000a) ACC_PRIVATE, ACC_STATIC
     Code:
       stack=2, locals=0, args_size=0
-         0: getstatic     #14                 // Field hello:Ljava/lang/String;
-         3: dup
-         4: ifnonnull     10
-         7: pop
-         8: ldc           #16                 // String banana
-        10: invokestatic  #22                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
-        13: return
+         0: aconst_null
+         1: putstatic     #14                 // Field hello:Ljava/lang/String;
+         4: getstatic     #14                 // Field hello:Ljava/lang/String;
+         7: dup
+         8: ifnonnull     14
+        11: pop
+        12: ldc           #16                 // String banana
+        14: invokestatic  #22                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+        17: return
       StackMapTable: number_of_entries = 1
-        frame_type = 74 /* same_locals_1_stack_item */
+        frame_type = 78 /* same_locals_1_stack_item */
           stack = [ class java/lang/String ]
       LineNumberTable:
         line 2: 0
+        line 3: 4
 
   public static void main(java.lang.String[]);
     descriptor: ([Ljava/lang/String;)V
     flags: (0x0009) ACC_PUBLIC, ACC_STATIC
     Code:
       stack=1, locals=1, args_size=1
-         0: aconst_null
-         1: putstatic     #14                 // Field hello:Ljava/lang/String;
-         4: invokestatic  #30                 // Method test:()V
-         7: return
+         0: ldc           #30                 // String Hello world!
+         2: putstatic     #14                 // Field hello:Ljava/lang/String;
+         5: invokestatic  #32                 // Method test:()V
+         8: return
       LineNumberTable:
-        line 4: 0
-        line 5: 4
+        line 5: 0
+        line 6: 5
     MethodParameters:
       Name                           Flags
       args

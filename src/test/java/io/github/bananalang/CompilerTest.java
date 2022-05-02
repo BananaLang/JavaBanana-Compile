@@ -20,9 +20,10 @@ public class CompilerTest {
             .defaultClassName();
         ClassWriter result = BananaCompiler.compile(
             "def var test() {\n" +
+                "hello = null;\n" +
                 "println(hello ?? \"banana\");\n" +
             "}\n" +
-            "def public String hello = null;\n" +
+            "def public String hello = \"Hello world!\";\n" +
             "test();\n",
             compileOptions
         );

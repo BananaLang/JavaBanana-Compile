@@ -18,6 +18,7 @@ import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.InstructionAdapter;
 
+import io.github.bananalang.JavaBananaConstants;
 import io.github.bananalang.parse.Parser;
 import io.github.bananalang.parse.Tokenizer;
 import io.github.bananalang.parse.ast.AccessExpression;
@@ -117,6 +118,10 @@ public final class BananaCompiler {
 
     private ClassWriter compile() {
         if (result == null) {
+            double startTime = System.nanoTime();
+            if (JavaBananaConstants.DEBUG) {
+                System.out.println("Beginning compile of 0x" + Integer.toHexString(root.hashCode()));
+            }
             result = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
             result.visit(52, Opcodes.ACC_PUBLIC, options.className(), null, "java/lang/Object", null);
             result.visitSource(options.sourceFileName(), null);
@@ -232,6 +237,9 @@ public final class BananaCompiler {
                 mainMethod.visitEnd();
             }
             result.visitEnd();
+            if (JavaBananaConstants.DEBUG) {
+                System.out.println("Finished compile in " + (System.nanoTime() - startTime) / 1_000_000D + "ms");
+            }
         }
         return result;
     }
