@@ -19,12 +19,11 @@ public class CompilerTest {
             .defaultModuleName()
             .defaultClassName();
         ClassWriter result = BananaCompiler.compile(
-            "def var a = null;\n" +
-            "if (a) {\n" +
-                "println(a);\n" +
-            "} else {\n" +
-                "println(\"twas null\");\n" +
-            "}\n",
+            "def var test() {\n" +
+                "println(hello ?? \"banana\");\n" +
+            "}\n" +
+            "def public String hello = null;\n" +
+            "test();\n",
             compileOptions
         );
         byte[] classData = result.toByteArray();

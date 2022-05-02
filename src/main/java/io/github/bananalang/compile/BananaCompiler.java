@@ -12,6 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -38,8 +39,10 @@ import io.github.bananalang.parse.ast.VariableDeclarationStatement;
 import io.github.bananalang.parse.ast.VariableDeclarationStatement.VariableDeclaration;
 import io.github.bananalang.parse.token.Token;
 import io.github.bananalang.typecheck.EvaluatedType;
+import io.github.bananalang.typecheck.GlobalVariable;
 import io.github.bananalang.typecheck.LocalVariable;
 import io.github.bananalang.typecheck.MethodCall;
+import io.github.bananalang.typecheck.Modifier2;
 import io.github.bananalang.typecheck.ScriptMethod;
 import io.github.bananalang.typecheck.Typechecker;
 import javassist.ClassPool;
@@ -135,8 +138,11 @@ public final class BananaCompiler {
                         descriptor.append(arg.getDescriptor());
                     }
                     descriptor.append(')').append(methodDefinition.getReturnType().getDescriptor());
+                    int access = functionDefinition.modifiers.contains(Modifier2.PUBLIC)
+                        ? Opcodes.ACC_PUBLIC
+                        : Opcodes.ACC_PRIVATE;
                     MethodVisitor mv = result.visitMethod(
-                        Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC,
+                        access | Opcodes.ACC_STATIC,
                         functionDefinition.name,
                         descriptor.toString(),
                         null,
@@ -181,6 +187,31 @@ public final class BananaCompiler {
                     }
                     mv.visitMaxs(-1, -1);
                     mv.visitEnd();
+                } else if (child instanceof VariableDeclarationStatement) {
+                    VariableDeclarationStatement declStmt = (VariableDeclarationStatement)child;
+                    if (!declStmt.isGlobalVariableDef()) continue;
+                    if (declStmt.modifiers.contains(Modifier2.LAZY)) {
+                        throw new IllegalArgumentException("TODO: Support lazy variables");
+                    } else {
+                        int access = declStmt.modifiers.contains(Modifier2.PUBLIC)
+                            ? Opcodes.ACC_PUBLIC
+                            : Opcodes.ACC_PRIVATE;
+                        for (VariableDeclaration decl : declStmt.declarations) {
+                            GlobalVariable global = types.getGlobalVariable(decl.name);
+                            FieldVisitor fv = result.visitField(
+                                access | Opcodes.ACC_STATIC,
+                                decl.name,
+                                global.getType().getDescriptor(),
+                                null,
+                                null
+                            );
+                            fv.visitAnnotation(
+                                NULLABLE_ANNOTATION,
+                                false
+                            );
+                            fv.visitEnd();
+                        }
+                    }
                 }
             }
             if (needsMainMethod()) {
@@ -363,16 +394,35 @@ public final class BananaCompiler {
     private void compileVariableDeclarationStatement(InstructionAdapter method, VariableDeclarationStatement stmt) {
         Label label = new Label();
         method.visitLabel(label);
+        boolean isGlobal = stmt.isGlobalVariableDef();
+        boolean isLazy = stmt.modifiers.contains(Modifier2.LAZY);
         for (VariableDeclaration decl : stmt.declarations) {
-            addLocal(decl.name, currentVariableDecl);
-            Map.Entry<StatementList, Scope> scope = scopes.getLast();
-            scope.getValue().getVarStarts().put(types.getScope(scope.getKey()).get(decl.name), label);
-            if (decl.value != null) {
-                compileExpression(method, decl.value);
-                lineNumber(stmt.row, method);
-                method.visitVarInsn(Opcodes.ASTORE, currentVariableDecl);
+            if (isGlobal) {
+                if (decl.value != null) {
+                    if (isLazy) {
+                        throw new IllegalArgumentException("TODO: Support lazy variables");
+                    } else {
+                        GlobalVariable global = types.getGlobalVariable(decl.name);
+                        compileExpression(method, decl.value);
+                        lineNumber(stmt.row, method);
+                        method.putstatic(
+                            options.className(),
+                            decl.name,
+                            global.getType().getDescriptor()
+                        );
+                    }
+                }
+            } else {
+                addLocal(decl.name, currentVariableDecl);
+                Map.Entry<StatementList, Scope> scope = scopes.getLast();
+                scope.getValue().getVarStarts().put(types.getScope(scope.getKey()).get(decl.name), label);
+                if (decl.value != null) {
+                    compileExpression(method, decl.value);
+                    lineNumber(stmt.row, method);
+                    method.visitVarInsn(Opcodes.ASTORE, currentVariableDecl);
+                }
+                currentVariableDecl++;
             }
-            currentVariableDecl++;
         }
     }
 
@@ -470,7 +520,21 @@ public final class BananaCompiler {
         } else if (expr instanceof IdentifierExpression) {
             IdentifierExpression identExpr = (IdentifierExpression)expr;
             lineNumber(expr.row, method);
-            method.visitVarInsn(Opcodes.ALOAD, findLocal(identExpr.identifier));
+            int local = findLocal(identExpr.identifier);
+            if (local != -1) {
+                method.visitVarInsn(Opcodes.ALOAD, local);
+            } else {
+                GlobalVariable global = types.getGlobalVariable(identExpr.identifier);
+                if (global.getIndex().contains(Modifier2.LAZY)) {
+                    throw new IllegalArgumentException("TODO: Support lazy variables");
+                } else {
+                    method.getstatic(
+                        options.className(),
+                        global.getName(),
+                        global.getType().getDescriptor()
+                    );
+                }
+            }
         } else if (expr instanceof BinaryExpression) {
             BinaryExpression binExpr = (BinaryExpression)expr;
             switch (binExpr.type) {
@@ -501,7 +565,22 @@ public final class BananaCompiler {
             if (dup) {
                 method.dup();
             }
-            method.visitVarInsn(Opcodes.ASTORE, findLocal(((IdentifierExpression)expr.target).identifier));
+            String identifier = ((IdentifierExpression)expr.target).identifier;
+            int local = findLocal(identifier);
+            if (local != -1) {
+                method.visitVarInsn(Opcodes.ASTORE, local);
+            } else {
+                GlobalVariable global = types.getGlobalVariable(identifier);
+                if (global.getIndex().contains(Modifier2.LAZY)) {
+                    throw new IllegalArgumentException("TODO: Support lazy variables");
+                } else {
+                    method.putstatic(
+                        options.className(),
+                        global.getName(),
+                        global.getType().getDescriptor()
+                    );
+                }
+            }
         } else {
             throw new IllegalArgumentException(
                 "Can't assign to " + expr.target.getClass().getSimpleName() + " yet"
@@ -522,7 +601,7 @@ public final class BananaCompiler {
                 return local;
             }
         }
-        return -1; // Shouldn't happen!
+        return -1;
     }
 
     private void lineNumber(int line, InstructionAdapter method) {
