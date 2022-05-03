@@ -11,6 +11,8 @@ import org.objectweb.asm.util.CheckClassAdapter;
 
 import io.github.bananalang.compile.BananaCompiler;
 import io.github.bananalang.compile.CompileOptions;
+import io.github.bananalang.compilecommon.problems.GenericCompilationFailureException;
+import io.github.bananalang.compilecommon.problems.ProblemCollector;
 
 public class CompilerTest {
     public static void main(String[] args) throws IOException {
@@ -18,15 +20,25 @@ public class CompilerTest {
             .sourceFileName("test.ba")
             .defaultModuleName()
             .defaultClassName();
-        ClassWriter result = BananaCompiler.compile(
-            "def var test() {\n" +
-                "hello = null;\n" +
-                "println(hello ?? \"banana\");\n" +
-            "}\n" +
-            "def public String hello = \"Hello world!\";\n" +
-            "test();\n",
-            compileOptions
-        );
+        ProblemCollector problemCollector = new ProblemCollector();
+        ClassWriter result;
+        try {
+            result = BananaCompiler.compile(
+                "def var test() {\n" +
+                    "hello = null;\n" +
+                    "println(hello ?? \"banana\");\n" +
+                "}\n" +
+                "def public String hello = \"Hello world!\";\n" +
+                "test();\n",
+                compileOptions, problemCollector
+            );
+        } catch (GenericCompilationFailureException e) {
+            System.out.println();
+            System.out.println(e.getProblemCollector().ansiFormattedString());
+            return;
+        }
+        System.out.println();
+        System.out.println(problemCollector.ansiFormattedString());
         byte[] classData = result.toByteArray();
 
         PrintWriter pw = new PrintWriter(System.out);

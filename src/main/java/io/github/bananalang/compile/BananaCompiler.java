@@ -19,6 +19,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.InstructionAdapter;
 
 import io.github.bananalang.JavaBananaConstants;
+import io.github.bananalang.compilecommon.problems.ProblemCollector;
 import io.github.bananalang.parse.Parser;
 import io.github.bananalang.parse.Tokenizer;
 import io.github.bananalang.parse.ast.AccessExpression;
@@ -60,6 +61,8 @@ public final class BananaCompiler {
     private final Typechecker types;
     private final StatementList root;
     private final CompileOptions options;
+    @SuppressWarnings("unused") // For now
+    private final ProblemCollector problemCollector;
     private ClassWriter result;
 
     private final Deque<Map.Entry<StatementList, Scope>> scopes = new ArrayDeque<>();
@@ -67,52 +70,53 @@ public final class BananaCompiler {
     private Label currentLineNumberLabel;
     private int currentVariableDecl;
 
-    private BananaCompiler(Typechecker types, StatementList root, CompileOptions options) {
+    private BananaCompiler(Typechecker types, StatementList root, CompileOptions options, ProblemCollector problemCollector) {
         this.types = types;
         this.root = root;
         this.options = options;
+        this.problemCollector = problemCollector;
         this.result = null;
     }
 
-    public static ClassWriter compileFile(File file, CompileOptions options) throws IOException {
+    public static ClassWriter compileFile(File file, CompileOptions options, ProblemCollector problemCollector) throws IOException {
         try (FileReader reader = new FileReader(file)) {
-            return compile(reader, options);
+            return compile(reader, options, problemCollector);
         }
     }
 
-    public static ClassWriter compileFile(String fileName, CompileOptions options) throws IOException {
+    public static ClassWriter compileFile(String fileName, CompileOptions options, ProblemCollector problemCollector) throws IOException {
         try (FileReader reader = new FileReader(fileName)) {
-            return compile(reader, options);
+            return compile(reader, options, problemCollector);
         }
     }
 
-    public static ClassWriter compile(Reader inputReader, CompileOptions options) throws IOException {
-        return compile(new Parser(inputReader), options);
+    public static ClassWriter compile(Reader inputReader, CompileOptions options, ProblemCollector problemCollector) throws IOException {
+        return compile(new Parser(inputReader, problemCollector), options, problemCollector);
     }
 
-    public static ClassWriter compile(String source, CompileOptions options) throws IOException {
-        return compile(new Parser(source), options);
+    public static ClassWriter compile(String source, CompileOptions options, ProblemCollector problemCollector) throws IOException {
+        return compile(new Parser(source, problemCollector), options, problemCollector);
     }
 
-    public static ClassWriter compile(Tokenizer tokenizer, CompileOptions options) throws IOException {
-        return compile(new Parser(tokenizer), options);
+    public static ClassWriter compile(Tokenizer tokenizer, CompileOptions options, ProblemCollector problemCollector) throws IOException {
+        return compile(new Parser(tokenizer, problemCollector), options, problemCollector);
     }
 
-    public static ClassWriter compile(List<Token> tokens, CompileOptions options) throws IOException {
-        return compile(new Parser(tokens), options);
+    public static ClassWriter compile(List<Token> tokens, CompileOptions options, ProblemCollector problemCollector) throws IOException {
+        return compile(new Parser(tokens, problemCollector), options, problemCollector);
     }
 
-    public static ClassWriter compile(Parser parser, CompileOptions options) throws IOException {
+    public static ClassWriter compile(Parser parser, CompileOptions options, ProblemCollector problemCollector) throws IOException {
         StatementList root = parser.parse();
         ClassPool cp = new ClassPool(ClassPool.getDefault());
         cp.appendClassPath(new LoaderClassPath(BananaCompiler.class.getClassLoader()));
-        Typechecker typechecker = new Typechecker(cp);
+        Typechecker typechecker = new Typechecker(cp, problemCollector);
         typechecker.typecheck(root);
-        return compile(typechecker, root, options);
+        return compile(typechecker, root, options, problemCollector);
     }
 
-    public static ClassWriter compile(Typechecker types, StatementList ast, CompileOptions options) {
-        BananaCompiler compiler = new BananaCompiler(types, ast, options);
+    public static ClassWriter compile(Typechecker types, StatementList ast, CompileOptions options, ProblemCollector problemCollector) {
+        BananaCompiler compiler = new BananaCompiler(types, ast, options, problemCollector);
         return compiler.compile();
     }
 
@@ -120,7 +124,7 @@ public final class BananaCompiler {
         if (result == null) {
             double startTime = System.nanoTime();
             if (JavaBananaConstants.DEBUG) {
-                System.out.println("Beginning compile of 0x" + Integer.toHexString(root.hashCode()));
+                System.out.println("Beginning compile of 0x" + Integer.toHexString(System.identityHashCode(root)));
             }
             result = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
             result.visit(52, Opcodes.ACC_PUBLIC, options.className(), null, "java/lang/Object", null);
