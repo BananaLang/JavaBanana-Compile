@@ -49,6 +49,7 @@ import io.github.bananalang.typecheck.ScriptMethod;
 import io.github.bananalang.typecheck.Typechecker;
 import javassist.ClassPool;
 import javassist.CtClass;
+import javassist.CtField;
 import javassist.CtMethod;
 import javassist.LoaderClassPath;
 import javassist.Modifier;
@@ -127,7 +128,7 @@ public final class BananaCompiler {
                 System.out.println("Beginning compile of 0x" + Integer.toHexString(System.identityHashCode(root)));
             }
             result = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-            result.visit(52, Opcodes.ACC_PUBLIC, options.className(), null, "java/lang/Object", null);
+            result.visit(52, Opcodes.ACC_PUBLIC, Descriptor.toJvmName(options.className()), null, "java/lang/Object", null);
             result.visitSource(options.sourceFileName(), null);
             {
                 MethodVisitor initMethod = result.visitMethod(Opcodes.ACC_PRIVATE, "<init>", "()V", null, null);
@@ -418,7 +419,7 @@ public final class BananaCompiler {
                         compileExpression(method, decl.value);
                         lineNumber(stmt.row, method);
                         method.putstatic(
-                            options.className(),
+                            Descriptor.toJvmName(options.className()),
                             decl.name,
                             global.getType().getDescriptor()
                         );
@@ -470,7 +471,7 @@ public final class BananaCompiler {
                 }
                 ScriptMethod scriptMethod = methodToCall.getScriptMethod();
                 opcode = Opcodes.INVOKESTATIC;
-                ownerName = options.className();
+                ownerName = Descriptor.toJvmName(options.className());
                 StringBuilder descriptorBuilder = new StringBuilder("(");
                 for (EvaluatedType argType : scriptMethod.getArgTypes()) {
                     descriptorBuilder.append(argType.getDescriptor());
@@ -537,13 +538,25 @@ public final class BananaCompiler {
                 method.visitVarInsn(Opcodes.ALOAD, local);
             } else {
                 GlobalVariable global = types.getGlobalVariable(identExpr.identifier);
-                if (global.getIndex().contains(Modifier2.LAZY)) {
-                    throw new IllegalArgumentException("TODO: Support lazy variables");
+                if (global != null) {
+                    if (global.getIndex().contains(Modifier2.LAZY)) {
+                        throw new IllegalArgumentException("TODO: Support lazy variables");
+                    } else {
+                        method.getstatic(
+                            Descriptor.toJvmName(options.className()),
+                            global.getName(),
+                            global.getType().getDescriptor()
+                        );
+                    }
                 } else {
+                    CtField field = types.getFieldAccess(identExpr);
+                    if (field == null) {
+                        throw new AssertionError("Missing IdentifierExpression type data\n" + identExpr);
+                    }
                     method.getstatic(
-                        options.className(),
-                        global.getName(),
-                        global.getType().getDescriptor()
+                        Descriptor.toJvmName(field.getDeclaringClass()),
+                        field.getName(),
+                        field.getSignature()
                     );
                 }
             }
@@ -587,7 +600,7 @@ public final class BananaCompiler {
                     throw new IllegalArgumentException("TODO: Support lazy variables");
                 } else {
                     method.putstatic(
-                        options.className(),
+                        Descriptor.toJvmName(options.className()),
                         global.getName(),
                         global.getType().getDescriptor()
                     );

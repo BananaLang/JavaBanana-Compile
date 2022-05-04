@@ -24,12 +24,8 @@ public class CompilerTest {
         ClassWriter result;
         try {
             result = BananaCompiler.compile(
-                "def var test() {\n" +
-                    "hello = null;\n" +
-                    "println(hello ?? \"banana\");\n" +
-                "}\n" +
-                "def public String hello = \"Hello world!\";\n" +
-                "test();\n",
+                "import org.objectweb.asm.commons.InstructionAdapter.OBJECT_TYPE;\n" +
+                "println(OBJECT_TYPE);",
                 compileOptions, problemCollector
             );
         } catch (GenericCompilationFailureException e) {

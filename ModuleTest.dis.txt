@@ -1,6 +1,6 @@
 Classfile /home/josia/BananaLang/JavaBanana-Compile/ModuleTest.class
-  Last modified May 2, 2022; size 658 bytes
-  SHA-256 checksum a06b9de4e2ace4d42877e97325cbb075fa53dbdf5771326b3269b4e075fd9151
+  Last modified May 3, 2022; size 467 bytes
+  SHA-256 checksum bed661198aae18ebad1526ff05814d8e782022f5f58fa2345e11a5382c361422
   Compiled from "test.ba"
 public class ModuleTest
   minor version: 0
@@ -8,7 +8,7 @@ public class ModuleTest
   flags: (0x0001) ACC_PUBLIC
   this_class: #2                          // ModuleTest
   super_class: #4                         // java/lang/Object
-  interfaces: 0, fields: 1, methods: 3, attributes: 1
+  interfaces: 0, fields: 0, methods: 2, attributes: 1
 Constant pool:
    #1 = Utf8               ModuleTest
    #2 = Class              #1             // ModuleTest
@@ -19,43 +19,26 @@ Constant pool:
    #7 = Utf8               ()V
    #8 = NameAndType        #6:#7          // "<init>":()V
    #9 = Methodref          #4.#8          // java/lang/Object."<init>":()V
-  #10 = Utf8               test
-  #11 = Utf8               hello
-  #12 = Utf8               Ljava/lang/String;
-  #13 = NameAndType        #11:#12        // hello:Ljava/lang/String;
-  #14 = Fieldref           #2.#13         // ModuleTest.hello:Ljava/lang/String;
-  #15 = Utf8               banana
-  #16 = String             #15            // banana
-  #17 = Utf8               banana/builtin/ModuleBuiltin
-  #18 = Class              #17            // banana/builtin/ModuleBuiltin
-  #19 = Utf8               println
-  #20 = Utf8               (Ljava/lang/String;)V
-  #21 = NameAndType        #19:#20        // println:(Ljava/lang/String;)V
-  #22 = Methodref          #18.#21        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
-  #23 = Utf8               java/lang/String
-  #24 = Class              #23            // java/lang/String
-  #25 = Utf8               Lbanana/internal/annotation/Nullable;
-  #26 = Utf8               main
-  #27 = Utf8               ([Ljava/lang/String;)V
-  #28 = Utf8               args
-  #29 = Utf8               Hello world!
-  #30 = String             #29            // Hello world!
-  #31 = NameAndType        #10:#7         // test:()V
-  #32 = Methodref          #2.#31         // ModuleTest.test:()V
-  #33 = Utf8               RuntimeInvisibleAnnotations
-  #34 = Utf8               Code
-  #35 = Utf8               StackMapTable
-  #36 = Utf8               LineNumberTable
-  #37 = Utf8               MethodParameters
-  #38 = Utf8               SourceFile
+  #10 = Utf8               main
+  #11 = Utf8               ([Ljava/lang/String;)V
+  #12 = Utf8               args
+  #13 = Utf8               org/objectweb/asm/commons/InstructionAdapter
+  #14 = Class              #13            // org/objectweb/asm/commons/InstructionAdapter
+  #15 = Utf8               OBJECT_TYPE
+  #16 = Utf8               Lorg/objectweb/asm/Type;
+  #17 = NameAndType        #15:#16        // OBJECT_TYPE:Lorg/objectweb/asm/Type;
+  #18 = Fieldref           #14.#17        // org/objectweb/asm/commons/InstructionAdapter.OBJECT_TYPE:Lorg/objectweb/asm/Type;
+  #19 = Utf8               banana/builtin/ModuleBuiltin
+  #20 = Class              #19            // banana/builtin/ModuleBuiltin
+  #21 = Utf8               println
+  #22 = Utf8               (Ljava/lang/Object;)V
+  #23 = NameAndType        #21:#22        // println:(Ljava/lang/Object;)V
+  #24 = Methodref          #20.#23        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/Object;)V
+  #25 = Utf8               Code
+  #26 = Utf8               LineNumberTable
+  #27 = Utf8               MethodParameters
+  #28 = Utf8               SourceFile
 {
-  public static java.lang.String hello;
-    descriptor: Ljava/lang/String;
-    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
-    RuntimeInvisibleAnnotations:
-      0: #25()
-        banana.internal.annotation.Nullable
-
   private ModuleTest();
     descriptor: ()V
     flags: (0x0002) ACC_PRIVATE
@@ -65,39 +48,16 @@ Constant pool:
          1: invokespecial #9                  // Method java/lang/Object."<init>":()V
          4: return
 
-  private static void test();
-    descriptor: ()V
-    flags: (0x000a) ACC_PRIVATE, ACC_STATIC
-    Code:
-      stack=2, locals=0, args_size=0
-         0: aconst_null
-         1: putstatic     #14                 // Field hello:Ljava/lang/String;
-         4: getstatic     #14                 // Field hello:Ljava/lang/String;
-         7: dup
-         8: ifnonnull     14
-        11: pop
-        12: ldc           #16                 // String banana
-        14: invokestatic  #22                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
-        17: return
-      StackMapTable: number_of_entries = 1
-        frame_type = 78 /* same_locals_1_stack_item */
-          stack = [ class java/lang/String ]
-      LineNumberTable:
-        line 2: 0
-        line 3: 4
-
   public static void main(java.lang.String[]);
     descriptor: ([Ljava/lang/String;)V
     flags: (0x0009) ACC_PUBLIC, ACC_STATIC
     Code:
       stack=1, locals=1, args_size=1
-         0: ldc           #30                 // String Hello world!
-         2: putstatic     #14                 // Field hello:Ljava/lang/String;
-         5: invokestatic  #32                 // Method test:()V
-         8: return
+         0: getstatic     #18                 // Field org/objectweb/asm/commons/InstructionAdapter.OBJECT_TYPE:Lorg/objectweb/asm/Type;
+         3: invokestatic  #24                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/Object;)V
+         6: return
       LineNumberTable:
-        line 5: 0
-        line 6: 5
+        line 2: 0
     MethodParameters:
       Name                           Flags
       args

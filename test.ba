@@ -1,6 +1,2 @@
-def var test() {
-    hello = null;
-    println(hello ?? "banana");
-}
-def public String hello = "Hello world!";
-test();
+import org.objectweb.asm.commons.InstructionAdapter.OBJECT_TYPE;
+println(OBJECT_TYPE);
