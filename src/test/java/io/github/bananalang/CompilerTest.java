@@ -24,8 +24,14 @@ public class CompilerTest {
         ClassWriter result;
         try {
             result = BananaCompiler.compile(
-                "import org.objectweb.asm.commons.InstructionAdapter.OBJECT_TYPE;\n" +
-                "println(OBJECT_TYPE);",
+                "def extension var echo(String) {\n" +
+                    "println(this);\n" +
+                "}\n" +
+                "def extension var concat2(String, String a, String b) {\n" +
+                    "return this.concat(a).concat(b);\n" +
+                "}\n" +
+                "def var hello = \"Hello, \";\n" +
+                "hello.concat2(\"World\", \"!\").echo();\n",
                 compileOptions, problemCollector
             );
         } catch (GenericCompilationFailureException e) {

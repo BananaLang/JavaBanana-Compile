@@ -32,7 +32,7 @@ import io.github.bananalang.parse.ast.FunctionDefinitionStatement;
 import io.github.bananalang.parse.ast.IdentifierExpression;
 import io.github.bananalang.parse.ast.IfOrWhileStatement;
 import io.github.bananalang.parse.ast.ImportStatement;
-import io.github.bananalang.parse.ast.NullExpression;
+import io.github.bananalang.parse.ast.ReservedIdentifierExpression;
 import io.github.bananalang.parse.ast.ReturnStatement;
 import io.github.bananalang.parse.ast.StatementList;
 import io.github.bananalang.parse.ast.StatementNode;
@@ -167,18 +167,22 @@ public final class BananaCompiler {
                         );
                     }
                     currentVariableDecl = 0;
-                    for (VariableDeclaration arg : functionDefinition.args) {
+                    for (int i = 0; i < functionDefinition.args.length; i++) {
+                        VariableDeclaration arg = functionDefinition.args[i];
                         if (arg.value != null) {
                             throw new RuntimeException("Default parameters not supported yet");
                         }
-                        EvaluatedType type = methodDefinition.getArgTypes()[currentVariableDecl];
-                        mv.visitParameter(arg.name, 0);
+                        EvaluatedType type = methodDefinition.getArgTypes()[i];
+                        if (arg.name == null) {
+                            mv.visitParameter("this", Opcodes.ACC_FINAL);
+                        } else {
+                            mv.visitParameter(arg.name, 0);
+                        }
                         mv.visitParameterAnnotation(
-                            currentVariableDecl,
+                            i,
                             type.isNullable() ? NULLABLE_ANNOTATION : NONNULL_ANNOTATION,
                             false
                         );
-                        addLocal(arg.name, currentVariableDecl++);
                     }
                     mv.visitCode();
                     if (compileStatementList(
@@ -288,8 +292,9 @@ public final class BananaCompiler {
         method.visitLabel(scope.getStartLabel());
         if (args != null) {
             Map<String, LocalVariable> localVarScope = types.getScope(node);
-            for (VariableDeclaration arg : args) {
-                scope.getVarStarts().put(localVarScope.get(arg.name), scope.getStartLabel());
+            for (int i = 0; i < args.length; i++) {
+                addLocal(args[i].name, i);
+                scope.getVarStarts().put(localVarScope.get(args[i].name), scope.getStartLabel());
             }
         }
         for (int i = 0; i < node.children.size(); i++) {
@@ -312,7 +317,7 @@ public final class BananaCompiler {
         method.visitLabel(endLabel);
         for (Map.Entry<String, LocalVariable> variable : types.getScope(scope.getKey()).entrySet()) {
             method.visitLocalVariable(
-                variable.getKey(),
+                variable.getKey() != null ? variable.getKey() : "this",
                 variable.getValue().getType().getDescriptor(),
                 null,
                 scope.getValue().getVarStarts().get(variable.getValue()),
@@ -456,9 +461,18 @@ public final class BananaCompiler {
         if (expr instanceof StringExpression) {
             lineNumber(expr.row, method);
             method.aconst(((StringExpression)expr).value);
-        } else if (expr instanceof NullExpression) {
+        } else if (expr instanceof ReservedIdentifierExpression) {
+            ReservedIdentifierExpression reservedExpr = (ReservedIdentifierExpression)expr;
             lineNumber(expr.row, method);
-            method.aconst(null);
+            switch (reservedExpr.identifier) {
+                case NULL:
+                    method.aconst(null);
+                    break;
+                case THIS: {
+                    method.visitVarInsn(Opcodes.ALOAD, findLocal(null));
+                    break;
+                }
+            }
         } else if (expr instanceof CallExpression) {
             CallExpression callExpr = (CallExpression)expr;
             MethodCall methodToCall = types.getMethodCall(callExpr);
@@ -466,6 +480,10 @@ public final class BananaCompiler {
             String ownerName, descriptor;
             Label safeNavigationLabel = null;
             if (methodToCall.isScriptMethod()) {
+                if (callExpr.target instanceof AccessExpression) {
+                    // Extension method
+                    compileExpression(method, ((AccessExpression)callExpr.target).target);
+                }
                 for (ExpressionNode arg : callExpr.args) {
                     compileExpression(method, arg);
                 }
@@ -539,7 +557,7 @@ public final class BananaCompiler {
             } else {
                 GlobalVariable global = types.getGlobalVariable(identExpr.identifier);
                 if (global != null) {
-                    if (global.getIndex().contains(Modifier2.LAZY)) {
+                    if (global.getModifiers().contains(Modifier2.LAZY)) {
                         throw new IllegalArgumentException("TODO: Support lazy variables");
                     } else {
                         method.getstatic(
@@ -596,7 +614,7 @@ public final class BananaCompiler {
                 method.visitVarInsn(Opcodes.ASTORE, local);
             } else {
                 GlobalVariable global = types.getGlobalVariable(identifier);
-                if (global.getIndex().contains(Modifier2.LAZY)) {
+                if (global.getModifiers().contains(Modifier2.LAZY)) {
                     throw new IllegalArgumentException("TODO: Support lazy variables");
                 } else {
                     method.putstatic(
