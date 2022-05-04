@@ -56,6 +56,7 @@ import javassist.Modifier;
 import javassist.bytecode.Descriptor;
 
 public final class BananaCompiler {
+    private static final String EXTENSION_METHOD_ANNOTATION = "Lbanana/internal/annotation/ExtensionMethod;";
     private static final String NULLABLE_ANNOTATION = "Lbanana/internal/annotation/Nullable;";
     private static final String NONNULL_ANNOTATION = "Lbanana/internal/annotation/NonNull;";
 
@@ -158,6 +159,12 @@ public final class BananaCompiler {
                         null,
                         null
                     );
+                    if (methodDefinition.getModifiers().contains(Modifier2.EXTENSION)) {
+                        mv.visitAnnotation(
+                            EXTENSION_METHOD_ANNOTATION,
+                            false
+                        );
+                    }
                     if (!methodDefinition.getReturnType().getName().equals("void")) {
                         mv.visitAnnotation(
                             methodDefinition.getReturnType().isNullable()
@@ -480,9 +487,14 @@ public final class BananaCompiler {
             String ownerName, descriptor;
             Label safeNavigationLabel = null;
             if (methodToCall.isScriptMethod()) {
-                if (callExpr.target instanceof AccessExpression) {
-                    // Extension method
-                    compileExpression(method, ((AccessExpression)callExpr.target).target);
+                if (methodToCall.isExtensionMethod()) {
+                    AccessExpression accessExpr = (AccessExpression)callExpr.target;
+                    compileExpression(method, accessExpr.target);
+                    if (accessExpr.safeNavigation) {
+                        safeNavigationLabel = new Label();
+                        method.dup();
+                        method.ifnull(safeNavigationLabel);
+                    }
                 }
                 for (ExpressionNode arg : callExpr.args) {
                     compileExpression(method, arg);
@@ -500,7 +512,7 @@ public final class BananaCompiler {
             } else {
                 CtMethod javaMethod = methodToCall.getJavaMethod();
                 boolean isStatic = Modifier.isStatic(javaMethod.getModifiers());
-                if (callExpr.target instanceof AccessExpression && !isStatic) {
+                if (callExpr.target instanceof AccessExpression && (!isStatic || methodToCall.isExtensionMethod())) {
                     AccessExpression accessExpr = (AccessExpression)callExpr.target;
                     compileExpression(method, accessExpr.target);
                     if (accessExpr.safeNavigation) {
