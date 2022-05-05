@@ -8,13 +8,13 @@ import org.objectweb.asm.Label;
 
 import io.github.bananalang.typecheck.LocalVariable;
 
-public final class Scope {
+public final class CompileScope {
     private final Label startLabel;
     private final int firstLocal;
     private final Map<LocalVariable, Label> varStarts;
     private final Map<String, Integer> locals;
 
-    public Scope(int firstLocal) {
+    public CompileScope(int firstLocal) {
         this.startLabel = new Label();
         this.firstLocal = firstLocal;
         this.varStarts = new IdentityHashMap<>();

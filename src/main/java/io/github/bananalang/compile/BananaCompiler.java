@@ -68,7 +68,7 @@ public final class BananaCompiler {
     private final ProblemCollector problemCollector;
     private ClassWriter result;
 
-    private final Deque<Map.Entry<StatementList, Scope>> scopes = new ArrayDeque<>();
+    private final Deque<Map.Entry<StatementList, CompileScope>> scopes = new ArrayDeque<>();
     private int currentLineNumber;
     private Label currentLineNumberLabel;
     private int currentVariableDecl;
@@ -306,11 +306,11 @@ public final class BananaCompiler {
         boolean skipMethods,
         boolean isTopLevel
     ) {
-        scopes.addLast(new SimpleImmutableEntry<>(node, new Scope(currentVariableDecl)));
-        Scope scope = scopes.getLast().getValue();
+        scopes.addLast(new SimpleImmutableEntry<>(node, new CompileScope(currentVariableDecl)));
+        CompileScope scope = scopes.getLast().getValue();
         method.visitLabel(scope.getStartLabel());
         if (args != null) {
-            Map<String, LocalVariable> localVarScope = types.getScope(node);
+            Map<String, LocalVariable> localVarScope = types.getScope(node).getVars();
             for (int i = 0; i < args.length; i++) {
                 addLocal(args[i].name, i);
                 scope.getVarStarts().put(localVarScope.get(args[i].name), scope.getStartLabel());
@@ -330,11 +330,11 @@ public final class BananaCompiler {
     }
 
     private void endScope(InstructionAdapter method) {
-        Map.Entry<StatementList, Scope> scope = scopes.removeLast();
+        Map.Entry<StatementList, CompileScope> scope = scopes.removeLast();
         currentVariableDecl = scope.getValue().getFirstLocal();
         Label endLabel = new Label();
         method.visitLabel(endLabel);
-        for (Map.Entry<String, LocalVariable> variable : types.getScope(scope.getKey()).entrySet()) {
+        for (Map.Entry<String, LocalVariable> variable : types.getScope(scope.getKey()).getVars().entrySet()) {
             method.visitLocalVariable(
                 variable.getKey() != null ? variable.getKey() : "this",
                 variable.getValue().getType().getDescriptor(),
@@ -451,8 +451,8 @@ public final class BananaCompiler {
                 }
             } else {
                 addLocal(decl.name, currentVariableDecl);
-                Map.Entry<StatementList, Scope> scope = scopes.getLast();
-                scope.getValue().getVarStarts().put(types.getScope(scope.getKey()).get(decl.name), label);
+                Map.Entry<StatementList, CompileScope> scope = scopes.getLast();
+                scope.getValue().getVarStarts().put(types.getScope(scope.getKey()).getVars().get(decl.name), label);
                 if (decl.value != null) {
                     compileExpression(method, decl.value);
                     lineNumber(stmt.row, method);
@@ -660,9 +660,9 @@ public final class BananaCompiler {
     }
 
     private int findLocal(String name) {
-        Iterator<Map.Entry<StatementList, Scope>> iterator = scopes.descendingIterator();
+        Iterator<Map.Entry<StatementList, CompileScope>> iterator = scopes.descendingIterator();
         while (iterator.hasNext()) {
-            Scope scope = iterator.next().getValue();
+            CompileScope scope = iterator.next().getValue();
             Integer local = scope.getLocals().get(name);
             if (local != null) {
                 return local;

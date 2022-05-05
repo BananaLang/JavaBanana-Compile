@@ -24,14 +24,11 @@ public class CompilerTest {
         ClassWriter result;
         try {
             result = BananaCompiler.compile(
-                "def public extension var echo(String) {\n" +
-                    "println(this);\n" +
+                "def var myVar = \"hello\";\n" +
+                "def var myFunc() {\n" +
+                    "println(myVar);\n" +
                 "}\n" +
-                "def extension var echo2(String, String? other) {\n" +
-                    "this.add(other).echo();\n" +
-                "}\n" +
-                "def var hello = \"Hello \";\n" +
-                "hello.echo2(\"world!\");\n",
+                "myFunc();\n",
                 compileOptions, problemCollector
             );
         } catch (GenericCompilationFailureException e) {
