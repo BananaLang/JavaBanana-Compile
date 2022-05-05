@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
+import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.FieldVisitor;
 import org.objectweb.asm.Label;
@@ -132,14 +133,15 @@ public final class BananaCompiler {
             result.visit(52, Opcodes.ACC_PUBLIC, Descriptor.toJvmName(options.className()), null, "java/lang/Object", null);
             result.visitSource(options.sourceFileName(), null);
             {
-                MethodVisitor initMethod = result.visitMethod(Opcodes.ACC_PRIVATE, "<init>", "()V", null, null);
-                initMethod.visitCode();
-                initMethod.visitVarInsn(Opcodes.ALOAD, 0);
-                initMethod.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
-                initMethod.visitInsn(Opcodes.RETURN);
-                initMethod.visitMaxs(-1, -1);
-                initMethod.visitEnd();
+                MethodVisitor mv = result.visitMethod(Opcodes.ACC_PRIVATE, "<init>", "()V", null, null);
+                mv.visitCode();
+                mv.visitVarInsn(Opcodes.ALOAD, 0);
+                mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false);
+                mv.visitInsn(Opcodes.RETURN);
+                mv.visitMaxs(-1, -1);
+                mv.visitEnd();
             }
+            boolean isModule = false;
             for (StatementNode child : root.children) {
                 if (child instanceof FunctionDefinitionStatement) {
                     FunctionDefinitionStatement functionDefinition = (FunctionDefinitionStatement)child;
@@ -152,6 +154,9 @@ public final class BananaCompiler {
                     int access = functionDefinition.modifiers.contains(Modifier2.PUBLIC)
                         ? Opcodes.ACC_PUBLIC
                         : Opcodes.ACC_PRIVATE;
+                    if (access != Opcodes.ACC_PRIVATE) {
+                        isModule = true;
+                    }
                     MethodVisitor mv = result.visitMethod(
                         access | Opcodes.ACC_STATIC,
                         functionDefinition.name,
@@ -217,6 +222,9 @@ public final class BananaCompiler {
                         int access = declStmt.modifiers.contains(Modifier2.PUBLIC)
                             ? Opcodes.ACC_PUBLIC
                             : Opcodes.ACC_PRIVATE;
+                        if (access != Opcodes.ACC_PRIVATE) {
+                            isModule = true;
+                        }
                         for (VariableDeclaration decl : declStmt.declarations) {
                             GlobalVariable global = types.getGlobalVariable(decl.name);
                             FieldVisitor fv = result.visitField(
@@ -234,6 +242,10 @@ public final class BananaCompiler {
                         }
                     }
                 }
+            }
+            if (isModule) {
+                AnnotationVisitor av = result.visitAnnotation("Lbanana/internal/annotation/BananaModule;", false);
+                av.visitEnd();
             }
             if (needsMainMethod()) {
                 MethodVisitor mainMethod = result.visitMethod(

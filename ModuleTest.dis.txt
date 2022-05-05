@@ -1,6 +1,6 @@
 Classfile /home/josia/BananaLang/JavaBanana-Compile/ModuleTest.class
-  Last modified May 4, 2022; size 1086 bytes
-  SHA-256 checksum e377b0761276d7a8a765ff2b10d51cfac2bad81ef180393ec826df7827f3aeb8
+  Last modified May 5, 2022; size 1138 bytes
+  SHA-256 checksum 461d8640e0d2f034e275ac5fe10e1f58add60f8b246551e0eff13707639fd6a5
   Compiled from "test.ba"
 public class ModuleTest
   minor version: 0
@@ -8,7 +8,7 @@ public class ModuleTest
   flags: (0x0001) ACC_PUBLIC
   this_class: #2                          // ModuleTest
   super_class: #4                         // java/lang/Object
-  interfaces: 0, fields: 0, methods: 4, attributes: 1
+  interfaces: 0, fields: 0, methods: 4, attributes: 2
 Constant pool:
    #1 = Utf8               ModuleTest
    #2 = Class              #1             // ModuleTest
@@ -30,37 +30,36 @@ Constant pool:
   #18 = NameAndType        #17:#11        // println:(Ljava/lang/String;)V
   #19 = Methodref          #16.#18        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
   #20 = Utf8               Ljava/lang/String;
-  #21 = Utf8               concat2
-  #22 = Utf8               (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #23 = Utf8               a
-  #24 = Utf8               b
-  #25 = Utf8               java/lang/String
-  #26 = Class              #25            // java/lang/String
-  #27 = Utf8               concat
-  #28 = Utf8               (Ljava/lang/String;)Ljava/lang/String;
-  #29 = NameAndType        #27:#28        // concat:(Ljava/lang/String;)Ljava/lang/String;
-  #30 = Methodref          #26.#29        // java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
-  #31 = Utf8               main
-  #32 = Utf8               ([Ljava/lang/String;)V
-  #33 = Utf8               args
-  #34 = Utf8               Hello,
-  #35 = String             #34            // Hello,
-  #36 = Utf8               World
-  #37 = String             #36            // World
-  #38 = Utf8               !
-  #39 = String             #38            // !
-  #40 = NameAndType        #21:#22        // concat2:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #41 = Methodref          #2.#40         // ModuleTest.concat2:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-  #42 = NameAndType        #10:#11        // echo:(Ljava/lang/String;)V
-  #43 = Methodref          #2.#42         // ModuleTest.echo:(Ljava/lang/String;)V
-  #44 = Utf8               hello
-  #45 = Utf8               Code
-  #46 = Utf8               LineNumberTable
-  #47 = Utf8               LocalVariableTable
-  #48 = Utf8               RuntimeInvisibleAnnotations
-  #49 = Utf8               RuntimeInvisibleParameterAnnotations
-  #50 = Utf8               MethodParameters
-  #51 = Utf8               SourceFile
+  #21 = Utf8               echo2
+  #22 = Utf8               (Ljava/lang/String;Ljava/lang/String;)V
+  #23 = Utf8               other
+  #24 = Utf8               Lbanana/internal/annotation/Nullable;
+  #25 = Utf8               banana/builtin/StringExtensions
+  #26 = Class              #25            // banana/builtin/StringExtensions
+  #27 = Utf8               add
+  #28 = Utf8               (Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;
+  #29 = NameAndType        #27:#28        // add:(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;
+  #30 = Methodref          #26.#29        // banana/builtin/StringExtensions.add:(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;
+  #31 = NameAndType        #10:#11        // echo:(Ljava/lang/String;)V
+  #32 = Methodref          #2.#31         // ModuleTest.echo:(Ljava/lang/String;)V
+  #33 = Utf8               Lbanana/internal/annotation/BananaModule;
+  #34 = Utf8               main
+  #35 = Utf8               ([Ljava/lang/String;)V
+  #36 = Utf8               args
+  #37 = Utf8               Hello
+  #38 = String             #37            // Hello
+  #39 = Utf8               world!
+  #40 = String             #39            // world!
+  #41 = NameAndType        #21:#22        // echo2:(Ljava/lang/String;Ljava/lang/String;)V
+  #42 = Methodref          #2.#41         // ModuleTest.echo2:(Ljava/lang/String;Ljava/lang/String;)V
+  #43 = Utf8               hello
+  #44 = Utf8               Code
+  #45 = Utf8               LineNumberTable
+  #46 = Utf8               LocalVariableTable
+  #47 = Utf8               RuntimeInvisibleAnnotations
+  #48 = Utf8               RuntimeInvisibleParameterAnnotations
+  #49 = Utf8               MethodParameters
+  #50 = Utf8               SourceFile
 {
   private ModuleTest();
     descriptor: ()V
@@ -71,9 +70,9 @@ Constant pool:
          1: invokespecial #9                  // Method java/lang/Object."<init>":()V
          4: return
 
-  private static void echo(java.lang.String);
+  public static void echo(java.lang.String);
     descriptor: (Ljava/lang/String;)V
-    flags: (0x000a) ACC_PRIVATE, ACC_STATIC
+    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
     Code:
       stack=1, locals=1, args_size=1
          0: aload_0
@@ -95,66 +94,59 @@ Constant pool:
       Name                           Flags
       this                           final
 
-  private static java.lang.String concat2(java.lang.String, java.lang.String, java.lang.String);
-    descriptor: (Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
+  private static void echo2(java.lang.String, java.lang.String);
+    descriptor: (Ljava/lang/String;Ljava/lang/String;)V
     flags: (0x000a) ACC_PRIVATE, ACC_STATIC
     Code:
-      stack=2, locals=3, args_size=3
+      stack=2, locals=2, args_size=2
          0: aload_0
          1: aload_1
-         2: invokevirtual #30                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
-         5: aload_2
-         6: invokevirtual #30                 // Method java/lang/String.concat:(Ljava/lang/String;)Ljava/lang/String;
-         9: areturn
+         2: invokestatic  #30                 // Method banana/builtin/StringExtensions.add:(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;
+         5: invokestatic  #32                 // Method echo:(Ljava/lang/String;)V
+         8: return
       LineNumberTable:
         line 5: 0
       LocalVariableTable:
         Start  Length  Slot  Name   Signature
-            0       9     0  this   Ljava/lang/String;
-            0       9     1     a   Ljava/lang/String;
-            0       9     2     b   Ljava/lang/String;
+            0       8     0  this   Ljava/lang/String;
+            0       8     1 other   Ljava/lang/String;
     RuntimeInvisibleAnnotations:
       0: #12()
         banana.internal.annotation.ExtensionMethod
-      1: #14()
-        banana.internal.annotation.NonNull
     RuntimeInvisibleParameterAnnotations:
       parameter 0:
         0: #14()
           banana.internal.annotation.NonNull
       parameter 1:
-        0: #14()
-          banana.internal.annotation.NonNull
-      parameter 2:
-        0: #14()
-          banana.internal.annotation.NonNull
+        0: #24()
+          banana.internal.annotation.Nullable
     MethodParameters:
       Name                           Flags
       this                           final
-      a
-      b
+      other
 
   public static void main(java.lang.String[]);
     descriptor: ([Ljava/lang/String;)V
     flags: (0x0009) ACC_PUBLIC, ACC_STATIC
     Code:
-      stack=3, locals=2, args_size=1
-         0: ldc           #35                 // String Hello,
+      stack=2, locals=2, args_size=1
+         0: ldc           #38                 // String Hello
          2: astore_1
          3: aload_1
-         4: ldc           #37                 // String World
-         6: ldc           #39                 // String !
-         8: invokestatic  #41                 // Method concat2:(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
-        11: invokestatic  #43                 // Method echo:(Ljava/lang/String;)V
-        14: return
+         4: ldc           #40                 // String world!
+         6: invokestatic  #42                 // Method echo2:(Ljava/lang/String;Ljava/lang/String;)V
+         9: return
       LineNumberTable:
         line 7: 0
         line 8: 3
       LocalVariableTable:
         Start  Length  Slot  Name   Signature
-            0      14     1 hello   Ljava/lang/String;
+            0       9     1 hello   Ljava/lang/String;
     MethodParameters:
       Name                           Flags
       args
 }
 SourceFile: "test.ba"
+RuntimeInvisibleAnnotations:
+  0: #33()
+    banana.internal.annotation.BananaModule

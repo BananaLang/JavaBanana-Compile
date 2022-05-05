@@ -24,14 +24,14 @@ public class CompilerTest {
         ClassWriter result;
         try {
             result = BananaCompiler.compile(
-                "def extension var echo(String) {\n" +
+                "def public extension var echo(String) {\n" +
                     "println(this);\n" +
                 "}\n" +
-                "def extension var concat2(String, String a, String b) {\n" +
-                    "return this.concat(a).concat(b);\n" +
+                "def extension var echo2(String, String? other) {\n" +
+                    "this.add(other).echo();\n" +
                 "}\n" +
-                "def var hello = \"Hello, \";\n" +
-                "hello.concat2(\"World\", \"!\").echo();\n",
+                "def var hello = \"Hello \";\n" +
+                "hello.echo2(\"world!\");\n",
                 compileOptions, problemCollector
             );
         } catch (GenericCompilationFailureException e) {
