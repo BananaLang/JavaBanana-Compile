@@ -24,11 +24,13 @@ public class CompilerTest {
         ClassWriter result;
         try {
             result = BananaCompiler.compile(
-                "def var myVar = \"hello\";\n" +
-                "def var myFunc() {\n" +
-                    "println(myVar);\n" +
+                "def lazy var myVar = myExpensiveFunc();\n" +
+                "println(\"created variable\");\n" +
+                "def String myExpensiveFunc() {\n" +
+                    "println(\"initialized\");\n" +
+                    "return \"hello\";\n" +
                 "}\n" +
-                "myFunc();\n",
+                "println(myVar);\n",
                 compileOptions, problemCollector
             );
         } catch (GenericCompilationFailureException e) {

@@ -1,6 +1,6 @@
 Classfile /home/josia/BananaLang/JavaBanana-Compile/ModuleTest.class
-  Last modified May 5, 2022; size 1138 bytes
-  SHA-256 checksum 461d8640e0d2f034e275ac5fe10e1f58add60f8b246551e0eff13707639fd6a5
+  Last modified May 6, 2022; size 765 bytes
+  SHA-256 checksum 7f82e53b27dc8949953bd31be69d4565368a1cc022ebbab89d4ed4b92d5635db
   Compiled from "test.ba"
 public class ModuleTest
   minor version: 0
@@ -8,7 +8,7 @@ public class ModuleTest
   flags: (0x0001) ACC_PUBLIC
   this_class: #2                          // ModuleTest
   super_class: #4                         // java/lang/Object
-  interfaces: 0, fields: 0, methods: 4, attributes: 2
+  interfaces: 0, fields: 1, methods: 4, attributes: 1
 Constant pool:
    #1 = Utf8               ModuleTest
    #2 = Class              #1             // ModuleTest
@@ -19,48 +19,44 @@ Constant pool:
    #7 = Utf8               ()V
    #8 = NameAndType        #6:#7          // "<init>":()V
    #9 = Methodref          #4.#8          // java/lang/Object."<init>":()V
-  #10 = Utf8               echo
-  #11 = Utf8               (Ljava/lang/String;)V
-  #12 = Utf8               Lbanana/internal/annotation/ExtensionMethod;
-  #13 = Utf8               this
-  #14 = Utf8               Lbanana/internal/annotation/NonNull;
-  #15 = Utf8               banana/builtin/ModuleBuiltin
-  #16 = Class              #15            // banana/builtin/ModuleBuiltin
-  #17 = Utf8               println
-  #18 = NameAndType        #17:#11        // println:(Ljava/lang/String;)V
-  #19 = Methodref          #16.#18        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
-  #20 = Utf8               Ljava/lang/String;
-  #21 = Utf8               echo2
-  #22 = Utf8               (Ljava/lang/String;Ljava/lang/String;)V
-  #23 = Utf8               other
-  #24 = Utf8               Lbanana/internal/annotation/Nullable;
-  #25 = Utf8               banana/builtin/StringExtensions
-  #26 = Class              #25            // banana/builtin/StringExtensions
-  #27 = Utf8               add
-  #28 = Utf8               (Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;
-  #29 = NameAndType        #27:#28        // add:(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;
-  #30 = Methodref          #26.#29        // banana/builtin/StringExtensions.add:(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;
-  #31 = NameAndType        #10:#11        // echo:(Ljava/lang/String;)V
-  #32 = Methodref          #2.#31         // ModuleTest.echo:(Ljava/lang/String;)V
-  #33 = Utf8               Lbanana/internal/annotation/BananaModule;
-  #34 = Utf8               main
-  #35 = Utf8               ([Ljava/lang/String;)V
-  #36 = Utf8               args
-  #37 = Utf8               Hello
-  #38 = String             #37            // Hello
-  #39 = Utf8               world!
-  #40 = String             #39            // world!
-  #41 = NameAndType        #21:#22        // echo2:(Ljava/lang/String;Ljava/lang/String;)V
-  #42 = Methodref          #2.#41         // ModuleTest.echo2:(Ljava/lang/String;Ljava/lang/String;)V
-  #43 = Utf8               hello
-  #44 = Utf8               Code
-  #45 = Utf8               LineNumberTable
-  #46 = Utf8               LocalVariableTable
-  #47 = Utf8               RuntimeInvisibleAnnotations
-  #48 = Utf8               RuntimeInvisibleParameterAnnotations
-  #49 = Utf8               MethodParameters
-  #50 = Utf8               SourceFile
+  #10 = Utf8               myVar$value
+  #11 = Utf8               Ljava/lang/String;
+  #12 = Utf8               myVar$get
+  #13 = Utf8               ()Ljava/lang/String;
+  #14 = NameAndType        #10:#11        // myVar$value:Ljava/lang/String;
+  #15 = Fieldref           #2.#14         // ModuleTest.myVar$value:Ljava/lang/String;
+  #16 = Utf8               myExpensiveFunc
+  #17 = NameAndType        #16:#13        // myExpensiveFunc:()Ljava/lang/String;
+  #18 = Methodref          #2.#17         // ModuleTest.myExpensiveFunc:()Ljava/lang/String;
+  #19 = Utf8               Lbanana/internal/annotation/NonNull;
+  #20 = Utf8               initialized
+  #21 = String             #20            // initialized
+  #22 = Utf8               banana/builtin/ModuleBuiltin
+  #23 = Class              #22            // banana/builtin/ModuleBuiltin
+  #24 = Utf8               println
+  #25 = Utf8               (Ljava/lang/String;)V
+  #26 = NameAndType        #24:#25        // println:(Ljava/lang/String;)V
+  #27 = Methodref          #23.#26        // banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+  #28 = Utf8               hello
+  #29 = String             #28            // hello
+  #30 = Utf8               main
+  #31 = Utf8               ([Ljava/lang/String;)V
+  #32 = Utf8               args
+  #33 = Utf8               created variable
+  #34 = String             #33            // created variable
+  #35 = NameAndType        #12:#13        // myVar$get:()Ljava/lang/String;
+  #36 = Methodref          #2.#35         // ModuleTest.myVar$get:()Ljava/lang/String;
+  #37 = Utf8               Code
+  #38 = Utf8               StackMapTable
+  #39 = Utf8               LineNumberTable
+  #40 = Utf8               RuntimeInvisibleAnnotations
+  #41 = Utf8               MethodParameters
+  #42 = Utf8               SourceFile
 {
+  private static java.lang.String myVar$value;
+    descriptor: Ljava/lang/String;
+    flags: (0x100a) ACC_PRIVATE, ACC_STATIC, ACC_SYNTHETIC
+
   private ModuleTest();
     descriptor: ()V
     flags: (0x0002) ACC_PRIVATE
@@ -70,83 +66,54 @@ Constant pool:
          1: invokespecial #9                  // Method java/lang/Object."<init>":()V
          4: return
 
-  public static void echo(java.lang.String);
-    descriptor: (Ljava/lang/String;)V
-    flags: (0x0009) ACC_PUBLIC, ACC_STATIC
+  private static java.lang.String myVar$get();
+    descriptor: ()Ljava/lang/String;
+    flags: (0x100a) ACC_PRIVATE, ACC_STATIC, ACC_SYNTHETIC
     Code:
-      stack=1, locals=1, args_size=1
-         0: aload_0
-         1: invokestatic  #19                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
-         4: return
+      stack=1, locals=0, args_size=0
+         0: getstatic     #15                 // Field myVar$value:Ljava/lang/String;
+         3: ifnonnull     12
+         6: invokestatic  #18                 // Method myExpensiveFunc:()Ljava/lang/String;
+         9: putstatic     #15                 // Field myVar$value:Ljava/lang/String;
+        12: getstatic     #15                 // Field myVar$value:Ljava/lang/String;
+        15: areturn
+      StackMapTable: number_of_entries = 1
+        frame_type = 12 /* same */
       LineNumberTable:
-        line 2: 0
-      LocalVariableTable:
-        Start  Length  Slot  Name   Signature
-            0       4     0  this   Ljava/lang/String;
-    RuntimeInvisibleAnnotations:
-      0: #12()
-        banana.internal.annotation.ExtensionMethod
-    RuntimeInvisibleParameterAnnotations:
-      parameter 0:
-        0: #14()
-          banana.internal.annotation.NonNull
-    MethodParameters:
-      Name                           Flags
-      this                           final
+        line 1: 0
+        line 1: 6
 
-  private static void echo2(java.lang.String, java.lang.String);
-    descriptor: (Ljava/lang/String;Ljava/lang/String;)V
+  private static java.lang.String myExpensiveFunc();
+    descriptor: ()Ljava/lang/String;
     flags: (0x000a) ACC_PRIVATE, ACC_STATIC
     Code:
-      stack=2, locals=2, args_size=2
-         0: aload_0
-         1: aload_1
-         2: invokestatic  #30                 // Method banana/builtin/StringExtensions.add:(Ljava/lang/String;Ljava/lang/Object;)Ljava/lang/String;
-         5: invokestatic  #32                 // Method echo:(Ljava/lang/String;)V
-         8: return
+      stack=1, locals=0, args_size=0
+         0: ldc           #21                 // String initialized
+         2: invokestatic  #27                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+         5: ldc           #29                 // String hello
+         7: areturn
       LineNumberTable:
-        line 5: 0
-      LocalVariableTable:
-        Start  Length  Slot  Name   Signature
-            0       8     0  this   Ljava/lang/String;
-            0       8     1 other   Ljava/lang/String;
+        line 4: 0
+        line 5: 5
     RuntimeInvisibleAnnotations:
-      0: #12()
-        banana.internal.annotation.ExtensionMethod
-    RuntimeInvisibleParameterAnnotations:
-      parameter 0:
-        0: #14()
-          banana.internal.annotation.NonNull
-      parameter 1:
-        0: #24()
-          banana.internal.annotation.Nullable
-    MethodParameters:
-      Name                           Flags
-      this                           final
-      other
+      0: #19()
+        banana.internal.annotation.NonNull
 
   public static void main(java.lang.String[]);
     descriptor: ([Ljava/lang/String;)V
     flags: (0x0009) ACC_PUBLIC, ACC_STATIC
     Code:
-      stack=2, locals=2, args_size=1
-         0: ldc           #38                 // String Hello
-         2: astore_1
-         3: aload_1
-         4: ldc           #40                 // String world!
-         6: invokestatic  #42                 // Method echo2:(Ljava/lang/String;Ljava/lang/String;)V
-         9: return
+      stack=1, locals=1, args_size=1
+         0: ldc           #34                 // String created variable
+         2: invokestatic  #27                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+         5: invokestatic  #36                 // Method myVar$get:()Ljava/lang/String;
+         8: invokestatic  #27                 // Method banana/builtin/ModuleBuiltin.println:(Ljava/lang/String;)V
+        11: return
       LineNumberTable:
-        line 7: 0
-        line 8: 3
-      LocalVariableTable:
-        Start  Length  Slot  Name   Signature
-            0       9     1 hello   Ljava/lang/String;
+        line 2: 0
+        line 7: 5
     MethodParameters:
       Name                           Flags
       args
 }
 SourceFile: "test.ba"
-RuntimeInvisibleAnnotations:
-  0: #33()
-    banana.internal.annotation.BananaModule

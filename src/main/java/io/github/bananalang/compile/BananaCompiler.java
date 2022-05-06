@@ -60,7 +60,9 @@ public final class BananaCompiler {
     private static final String EXTENSION_METHOD_ANNOTATION = "Lbanana/internal/annotation/ExtensionMethod;";
     private static final String NULLABLE_ANNOTATION = "Lbanana/internal/annotation/Nullable;";
     private static final String NONNULL_ANNOTATION = "Lbanana/internal/annotation/NonNull;";
+    private static final int MIN_CONSTANT_DYNAMIC = Opcodes.V11;
 
+    private static final int TODO_JVM_TARGET = Opcodes.V1_8;
     private final Typechecker types;
     private final StatementList root;
     private final CompileOptions options;
@@ -123,6 +125,8 @@ public final class BananaCompiler {
         return compiler.compile();
     }
 
+    // TODO: add JVM target
+    @SuppressWarnings("unused")
     private ClassWriter compile() {
         if (result == null) {
             double startTime = System.nanoTime();
@@ -217,7 +221,80 @@ public final class BananaCompiler {
                     VariableDeclarationStatement declStmt = (VariableDeclarationStatement)child;
                     if (!declStmt.isGlobalVariableDef()) continue;
                     if (declStmt.modifiers.contains(Modifier2.LAZY)) {
-                        throw new IllegalArgumentException("TODO: Support lazy variables");
+                        if (TODO_JVM_TARGET < MIN_CONSTANT_DYNAMIC) {
+                            for (VariableDeclaration decl : declStmt.declarations) {
+                                GlobalVariable global = types.getGlobalVariable(decl.name);
+                                result.visitField(
+                                    Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
+                                    decl.name + "$value",
+                                    global.getType().getDescriptor(),
+                                    null,
+                                    null
+                                );
+                                boolean needsExtraField = global.getType().isNullable() || global.getType().getJavassist().isPrimitive();
+                                if (needsExtraField) {
+                                    result.visitField(
+                                        Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
+                                        decl.name + "$initialized",
+                                        "Z",
+                                        null,
+                                        false
+                                    );
+                                }
+                                InstructionAdapter getMethod = new InstructionAdapter(result.visitMethod(
+                                    Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
+                                    decl.name + "$get",
+                                    "()" + global.getType().getDescriptor(),
+                                    null,
+                                    null
+                                ));
+                                getMethod.visitCode();
+                                Label startLabel = new Label();
+                                getMethod.visitLabel(startLabel);
+                                getMethod.visitLineNumber(declStmt.row, startLabel);
+                                Label inittedLabel = new Label();
+                                if (needsExtraField) {
+                                    getMethod.getstatic(
+                                        Descriptor.toJvmName(options.className()),
+                                        decl.name + "$initialized",
+                                        "Z"
+                                    );
+                                    getMethod.ifne(inittedLabel);
+                                } else {
+                                    getMethod.getstatic(
+                                        Descriptor.toJvmName(options.className()),
+                                        decl.name + "$value",
+                                        global.getType().getDescriptor()
+                                    );
+                                    getMethod.ifnonnull(inittedLabel);
+                                }
+                                compileExpression(getMethod, decl.value);
+                                getMethod.putstatic(
+                                    Descriptor.toJvmName(options.className()),
+                                    decl.name + "$value",
+                                    global.getType().getDescriptor()
+                                );
+                                if (needsExtraField) {
+                                    getMethod.iconst(1);
+                                    getMethod.putstatic(
+                                        Descriptor.toJvmName(options.className()),
+                                        decl.name + "$initialized",
+                                        "Z"
+                                    );
+                                }
+                                getMethod.visitLabel(inittedLabel);
+                                getMethod.getstatic(
+                                    Descriptor.toJvmName(options.className()),
+                                    decl.name + "$value",
+                                    global.getType().getDescriptor()
+                                );
+                                getMethod.visitInsn(Opcodes.ARETURN);
+                                getMethod.visitMaxs(-1, -1);
+                                getMethod.visitEnd();
+                            }
+                        } else {
+                            // TODO: use CONSTANT_Dynamic for lazy variables
+                        }
                     } else {
                         int access = declStmt.modifiers.contains(Modifier2.PUBLIC)
                             ? Opcodes.ACC_PUBLIC
@@ -435,19 +512,15 @@ public final class BananaCompiler {
         boolean isLazy = stmt.modifiers.contains(Modifier2.LAZY);
         for (VariableDeclaration decl : stmt.declarations) {
             if (isGlobal) {
-                if (decl.value != null) {
-                    if (isLazy) {
-                        throw new IllegalArgumentException("TODO: Support lazy variables");
-                    } else {
-                        GlobalVariable global = types.getGlobalVariable(decl.name);
-                        compileExpression(method, decl.value);
-                        lineNumber(stmt.row, method);
-                        method.putstatic(
-                            Descriptor.toJvmName(options.className()),
-                            decl.name,
-                            global.getType().getDescriptor()
-                        );
-                    }
+                if (decl.value != null && !isLazy) {
+                    GlobalVariable global = types.getGlobalVariable(decl.name);
+                    compileExpression(method, decl.value);
+                    lineNumber(stmt.row, method);
+                    method.putstatic(
+                        Descriptor.toJvmName(options.className()),
+                        decl.name,
+                        global.getType().getDescriptor()
+                    );
                 }
             } else {
                 addLocal(decl.name, currentVariableDecl);
@@ -582,7 +655,12 @@ public final class BananaCompiler {
                 GlobalVariable global = types.getGlobalVariable(identExpr.identifier);
                 if (global != null) {
                     if (global.getModifiers().contains(Modifier2.LAZY)) {
-                        throw new IllegalArgumentException("TODO: Support lazy variables");
+                        method.invokestatic(
+                            Descriptor.toJvmName(options.className()),
+                            identExpr.identifier + "$get",
+                            "()" + global.getType().getDescriptor(),
+                            false
+                        );
                     } else {
                         method.getstatic(
                             Descriptor.toJvmName(options.className()),
