@@ -1,8 +1,7 @@
-def extension var echo(String) {
-    println(this);
+def lazy var myVar = myExpensiveFunc();
+println("created variable");
+def String myExpensiveFunc() {
+    println("initialized");
+    return "hello";
 }
-def extension var concat2(String, String a, String b) {
-    return this.concat(a).concat(b);
-}
-def var hello = "Hello, ";
-hello.concat2("World", "!").echo();
+println(myVar);

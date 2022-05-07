@@ -60,7 +60,7 @@ public final class BananaCompiler {
     private static final String EXTENSION_METHOD_ANNOTATION = "Lbanana/internal/annotation/ExtensionMethod;";
     private static final String NULLABLE_ANNOTATION = "Lbanana/internal/annotation/Nullable;";
     private static final String NONNULL_ANNOTATION = "Lbanana/internal/annotation/NonNull;";
-    private static final int MIN_CONSTANT_DYNAMIC = Opcodes.V11;
+    private static final int MIN_CONSTANT_DYNAMIC_TARGET = Opcodes.V11;
 
     private static final int TODO_JVM_TARGET = Opcodes.V1_8;
     private final Typechecker types;
@@ -68,6 +68,7 @@ public final class BananaCompiler {
     private final CompileOptions options;
     @SuppressWarnings("unused") // For now
     private final ProblemCollector problemCollector;
+    private String jvmName;
     private ClassWriter result;
 
     private final Deque<Map.Entry<StatementList, CompileScope>> scopes = new ArrayDeque<>();
@@ -134,7 +135,8 @@ public final class BananaCompiler {
                 System.out.println("Beginning compile of 0x" + Integer.toHexString(System.identityHashCode(root)));
             }
             result = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
-            result.visit(52, Opcodes.ACC_PUBLIC, Descriptor.toJvmName(options.className()), null, "java/lang/Object", null);
+            jvmName = Descriptor.toJvmName(options.className());
+            result.visit(TODO_JVM_TARGET, Opcodes.ACC_PUBLIC, jvmName, null, "java/lang/Object", null);
             result.visitSource(options.sourceFileName(), null);
             {
                 MethodVisitor mv = result.visitMethod(Opcodes.ACC_PRIVATE, "<init>", "()V", null, null);
@@ -221,7 +223,7 @@ public final class BananaCompiler {
                     VariableDeclarationStatement declStmt = (VariableDeclarationStatement)child;
                     if (!declStmt.isGlobalVariableDef()) continue;
                     if (declStmt.modifiers.contains(Modifier2.LAZY)) {
-                        if (TODO_JVM_TARGET < MIN_CONSTANT_DYNAMIC) {
+                        if (TODO_JVM_TARGET < MIN_CONSTANT_DYNAMIC_TARGET) {
                             for (VariableDeclaration decl : declStmt.declarations) {
                                 GlobalVariable global = types.getGlobalVariable(decl.name);
                                 result.visitField(
@@ -255,14 +257,14 @@ public final class BananaCompiler {
                                 Label inittedLabel = new Label();
                                 if (needsExtraField) {
                                     getMethod.getstatic(
-                                        Descriptor.toJvmName(options.className()),
+                                        jvmName,
                                         decl.name + "$initialized",
                                         "Z"
                                     );
                                     getMethod.ifne(inittedLabel);
                                 } else {
                                     getMethod.getstatic(
-                                        Descriptor.toJvmName(options.className()),
+                                        jvmName,
                                         decl.name + "$value",
                                         global.getType().getDescriptor()
                                     );
@@ -270,21 +272,21 @@ public final class BananaCompiler {
                                 }
                                 compileExpression(getMethod, decl.value);
                                 getMethod.putstatic(
-                                    Descriptor.toJvmName(options.className()),
+                                    jvmName,
                                     decl.name + "$value",
                                     global.getType().getDescriptor()
                                 );
                                 if (needsExtraField) {
                                     getMethod.iconst(1);
                                     getMethod.putstatic(
-                                        Descriptor.toJvmName(options.className()),
+                                        jvmName,
                                         decl.name + "$initialized",
                                         "Z"
                                     );
                                 }
                                 getMethod.visitLabel(inittedLabel);
                                 getMethod.getstatic(
-                                    Descriptor.toJvmName(options.className()),
+                                    jvmName,
                                     decl.name + "$value",
                                     global.getType().getDescriptor()
                                 );
@@ -517,7 +519,7 @@ public final class BananaCompiler {
                     compileExpression(method, decl.value);
                     lineNumber(stmt.row, method);
                     method.putstatic(
-                        Descriptor.toJvmName(options.className()),
+                        jvmName,
                         decl.name,
                         global.getType().getDescriptor()
                     );
@@ -586,7 +588,7 @@ public final class BananaCompiler {
                 }
                 ScriptMethod scriptMethod = methodToCall.getScriptMethod();
                 opcode = Opcodes.INVOKESTATIC;
-                ownerName = Descriptor.toJvmName(options.className());
+                ownerName = jvmName;
                 StringBuilder descriptorBuilder = new StringBuilder("(");
                 for (EvaluatedType argType : scriptMethod.getArgTypes()) {
                     descriptorBuilder.append(argType.getDescriptor());
@@ -655,15 +657,17 @@ public final class BananaCompiler {
                 GlobalVariable global = types.getGlobalVariable(identExpr.identifier);
                 if (global != null) {
                     if (global.getModifiers().contains(Modifier2.LAZY)) {
-                        method.invokestatic(
-                            Descriptor.toJvmName(options.className()),
-                            identExpr.identifier + "$get",
-                            "()" + global.getType().getDescriptor(),
-                            false
-                        );
+                        if (TODO_JVM_TARGET < MIN_CONSTANT_DYNAMIC_TARGET) {
+                            method.invokestatic(
+                                jvmName,
+                                identExpr.identifier + "$get",
+                                "()" + global.getType().getDescriptor(),
+                                false
+                            );
+                        }
                     } else {
                         method.getstatic(
-                            Descriptor.toJvmName(options.className()),
+                            jvmName,
                             global.getName(),
                             global.getType().getDescriptor()
                         );
@@ -720,7 +724,7 @@ public final class BananaCompiler {
                     throw new IllegalArgumentException("TODO: Support lazy variables");
                 } else {
                     method.putstatic(
-                        Descriptor.toJvmName(options.className()),
+                        jvmName,
                         global.getName(),
                         global.getType().getDescriptor()
                     );
