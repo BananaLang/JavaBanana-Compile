@@ -297,47 +297,20 @@ public final class BananaCompiler {
                         } else {
                             for (VariableDeclaration decl : declStmt.declarations) {
                                 GlobalVariable global = types.getGlobalVariable(decl.name);
-                                if (decl.value instanceof StringExpression) {
-                                    lazyConstants.put(decl.name, ((StringExpression)decl.value).value);
+                                Object simpleConstant = toSimpleConstant(decl.value);
+                                if (simpleConstant != null) {
+                                    lazyConstants.put(decl.name, simpleConstant);
                                     continue;
-                                } else if (decl.value instanceof CallExpression) {
-                                    CallExpression callExpr = (CallExpression)decl.value;
-                                    MethodCall methodCall = types.getMethodCall(callExpr);
-                                    if (methodCall.isStaticInvocation()) {
-                                        Object[] simpleConstants = new Object[callExpr.args.length];
-                                        boolean isFullySimple = true;
-                                        for (int i = 0; i < simpleConstants.length; i++) {
-                                            if ((simpleConstants[i] = toSimpleConstant(callExpr.args[i])) == null) {
-                                                isFullySimple = false;
-                                                break;
-                                            }
-                                        }
-                                        if (isFullySimple) {
-                                            // Bootstrap directly
-                                            String ownerName = methodCall.isScriptMethod()
-                                                ? jvmName
-                                                : Descriptor.toJvmName(methodCall.getJavaMethod().getDeclaringClass());
-                                            ConstantDynamic constantDynamic = new ConstantDynamic(
-                                                decl.name,
-                                                methodCall.getReturnType().getDescriptor(),
-                                                new Handle(
-                                                    Opcodes.H_INVOKESTATIC,
-                                                    ownerName,
-                                                    methodCall.getName(),
-                                                    methodCall.getDescriptor(),
-                                                    false
-                                                ),
-                                                simpleConstants
-                                            );
-                                            lazyConstants.put(decl.name, constantDynamic);
-                                            continue;
-                                        }
-                                    }
                                 }
+                                String methodDescriptor = "(" +
+                                        "Ljava/lang/invoke/MethodHandles$Lookup;" +
+                                        "Ljava/lang/String;" +
+                                        "Ljava/lang/Class;" +
+                                    ")" + global.getType().getDescriptor();
                                 InstructionAdapter method = new InstructionAdapter(result.visitMethod(
                                     Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
                                     decl.name + "$0",
-                                    "()" + global.getType().getDescriptor(),
+                                    methodDescriptor,
                                     null,
                                     null
                                 ));
@@ -356,7 +329,7 @@ public final class BananaCompiler {
                                         Opcodes.H_INVOKESTATIC,
                                         jvmName,
                                         decl.name + "$0",
-                                        "()" + global.getType().getDescriptor(),
+                                        methodDescriptor,
                                         false
                                     ),
                                     new Object[0]
