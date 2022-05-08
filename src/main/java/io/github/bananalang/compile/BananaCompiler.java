@@ -14,9 +14,7 @@ import java.util.Map;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.FieldVisitor;
-import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -63,7 +61,6 @@ public final class BananaCompiler {
     private static final String EXTENSION_METHOD_ANNOTATION = "Lbanana/internal/annotation/ExtensionMethod;";
     private static final String NULLABLE_ANNOTATION = "Lbanana/internal/annotation/Nullable;";
     private static final String NONNULL_ANNOTATION = "Lbanana/internal/annotation/NonNull;";
-    private static final int MIN_CONSTANT_DYNAMIC_TARGET = Opcodes.V11;
 
     private final Typechecker types;
     private final StatementList root;
@@ -223,119 +220,80 @@ public final class BananaCompiler {
                     VariableDeclarationStatement declStmt = (VariableDeclarationStatement)child;
                     if (!declStmt.isGlobalVariableDef()) continue;
                     if (declStmt.modifiers.contains(Modifier2.LAZY)) {
-                        if (options.jvmTarget() < MIN_CONSTANT_DYNAMIC_TARGET) {
-                            for (VariableDeclaration decl : declStmt.declarations) {
-                                GlobalVariable global = types.getGlobalVariable(decl.name);
+                        for (VariableDeclaration decl : declStmt.declarations) {
+                            Object simpleConstant = toSimpleConstant(decl.value);
+                            if (simpleConstant != null) {
+                                lazyConstants.put(decl.name, simpleConstant);
+                                continue;
+                            }
+                            GlobalVariable global = types.getGlobalVariable(decl.name);
+                            result.visitField(
+                                Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
+                                decl.name + "$value",
+                                global.getType().getDescriptor(),
+                                null,
+                                null
+                            );
+                            boolean needsExtraField = global.getType().isNullable() || global.getType().getJavassist().isPrimitive();
+                            if (needsExtraField) {
                                 result.visitField(
                                     Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
-                                    decl.name + "$value",
-                                    global.getType().getDescriptor(),
+                                    decl.name + "$initialized",
+                                    "Z",
                                     null,
-                                    null
+                                    false
                                 );
-                                boolean needsExtraField = global.getType().isNullable() || global.getType().getJavassist().isPrimitive();
-                                if (needsExtraField) {
-                                    result.visitField(
-                                        Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
-                                        decl.name + "$initialized",
-                                        "Z",
-                                        null,
-                                        false
-                                    );
-                                }
-                                InstructionAdapter getMethod = new InstructionAdapter(result.visitMethod(
-                                    Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
-                                    decl.name + "$get",
-                                    "()" + global.getType().getDescriptor(),
-                                    null,
-                                    null
-                                ));
-                                getMethod.visitCode();
-                                Label startLabel = new Label();
-                                getMethod.visitLabel(startLabel);
-                                getMethod.visitLineNumber(declStmt.row, startLabel);
-                                Label inittedLabel = new Label();
-                                if (needsExtraField) {
-                                    getMethod.getstatic(
-                                        jvmName,
-                                        decl.name + "$initialized",
-                                        "Z"
-                                    );
-                                    getMethod.ifne(inittedLabel);
-                                } else {
-                                    getMethod.getstatic(
-                                        jvmName,
-                                        decl.name + "$value",
-                                        global.getType().getDescriptor()
-                                    );
-                                    getMethod.ifnonnull(inittedLabel);
-                                }
-                                compileExpression(getMethod, decl.value);
-                                getMethod.putstatic(
+                            }
+                            InstructionAdapter getMethod = new InstructionAdapter(result.visitMethod(
+                                Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
+                                decl.name + "$get",
+                                "()" + global.getType().getDescriptor(),
+                                null,
+                                null
+                            ));
+                            getMethod.visitCode();
+                            Label startLabel = new Label();
+                            getMethod.visitLabel(startLabel);
+                            getMethod.visitLineNumber(declStmt.row, startLabel);
+                            Label inittedLabel = new Label();
+                            if (needsExtraField) {
+                                getMethod.getstatic(
                                     jvmName,
-                                    decl.name + "$value",
-                                    global.getType().getDescriptor()
+                                    decl.name + "$initialized",
+                                    "Z"
                                 );
-                                if (needsExtraField) {
-                                    getMethod.iconst(1);
-                                    getMethod.putstatic(
-                                        jvmName,
-                                        decl.name + "$initialized",
-                                        "Z"
-                                    );
-                                }
-                                getMethod.visitLabel(inittedLabel);
+                                getMethod.ifne(inittedLabel);
+                            } else {
                                 getMethod.getstatic(
                                     jvmName,
                                     decl.name + "$value",
                                     global.getType().getDescriptor()
                                 );
-                                getMethod.visitInsn(Opcodes.ARETURN);
-                                getMethod.visitMaxs(-1, -1);
-                                getMethod.visitEnd();
+                                getMethod.ifnonnull(inittedLabel);
                             }
-                        } else {
-                            for (VariableDeclaration decl : declStmt.declarations) {
-                                GlobalVariable global = types.getGlobalVariable(decl.name);
-                                Object simpleConstant = toSimpleConstant(decl.value);
-                                if (simpleConstant != null) {
-                                    lazyConstants.put(decl.name, simpleConstant);
-                                    continue;
-                                }
-                                String methodDescriptor = "(" +
-                                        "Ljava/lang/invoke/MethodHandles$Lookup;" +
-                                        "Ljava/lang/String;" +
-                                        "Ljava/lang/Class;" +
-                                    ")" + global.getType().getDescriptor();
-                                InstructionAdapter method = new InstructionAdapter(result.visitMethod(
-                                    Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
-                                    decl.name + "$0",
-                                    methodDescriptor,
-                                    null,
-                                    null
-                                ));
-                                method.visitCode();
-                                Label startLabel = new Label();
-                                method.visitLabel(startLabel);
-                                method.visitLineNumber(declStmt.row, startLabel);
-                                compileExpression(method, decl.value);
-                                method.visitInsn(Opcodes.ARETURN);
-                                method.visitMaxs(-1, -1);
-                                method.visitEnd();
-                                ConstantDynamic constantDynamic = new ConstantDynamic(
-                                    decl.name,
-                                    global.getType().getDescriptor(),
-                                    new Handle(
-                                        Opcodes.H_INVOKESTATIC,
-                                        jvmName,
-                                        decl.name + "$0",
-                                        methodDescriptor,
-                                        false
-                                    ),
-                                    new Object[0]
+                            compileExpression(getMethod, decl.value);
+                            getMethod.putstatic(
+                                jvmName,
+                                decl.name + "$value",
+                                global.getType().getDescriptor()
+                            );
+                            if (needsExtraField) {
+                                getMethod.iconst(1);
+                                getMethod.putstatic(
+                                    jvmName,
+                                    decl.name + "$initialized",
+                                    "Z"
                                 );
-                                lazyConstants.put(decl.name, constantDynamic);
                             }
+                            getMethod.visitLabel(inittedLabel);
+                            getMethod.getstatic(
+                                jvmName,
+                                decl.name + "$value",
+                                global.getType().getDescriptor()
+                            );
+                            getMethod.visitInsn(Opcodes.ARETURN);
+                            getMethod.visitMaxs(-1, -1);
+                            getMethod.visitEnd();
                         }
                     } else {
                         int access = declStmt.modifiers.contains(Modifier2.PUBLIC)
@@ -695,15 +653,16 @@ public final class BananaCompiler {
                 GlobalVariable global = types.getGlobalVariable(identExpr.identifier);
                 if (global != null) {
                     if (global.getModifiers().contains(Modifier2.LAZY)) {
-                        if (options.jvmTarget() < MIN_CONSTANT_DYNAMIC_TARGET) {
+                        Object simpleConstant = lazyConstants.get(identExpr.identifier);
+                        if (simpleConstant != null) {
+                            method.visitLdcInsn(lazyConstants.get(identExpr.identifier));
+                        } else {
                             method.invokestatic(
                                 jvmName,
                                 identExpr.identifier + "$get",
                                 "()" + global.getType().getDescriptor(),
                                 false
                             );
-                        } else {
-                            method.visitLdcInsn(lazyConstants.get(identExpr.identifier));
                         }
                     } else {
                         method.getstatic(
