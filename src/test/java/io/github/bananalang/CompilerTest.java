@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.CheckClassAdapter;
 
 import io.github.bananalang.compile.BananaCompiler;
@@ -19,7 +20,8 @@ public class CompilerTest {
         CompileOptions compileOptions = new CompileOptions()
             .sourceFileName("test.ba")
             .defaultModuleName()
-            .defaultClassName();
+            .defaultClassName()
+            .jvmTarget(Opcodes.V11);
         ProblemCollector problemCollector = new ProblemCollector();
         ClassWriter result;
         try {

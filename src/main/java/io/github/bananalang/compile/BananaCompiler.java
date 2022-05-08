@@ -7,13 +7,16 @@ import java.io.Reader;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.ConstantDynamic;
 import org.objectweb.asm.FieldVisitor;
+import org.objectweb.asm.Handle;
 import org.objectweb.asm.Label;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
@@ -62,7 +65,6 @@ public final class BananaCompiler {
     private static final String NONNULL_ANNOTATION = "Lbanana/internal/annotation/NonNull;";
     private static final int MIN_CONSTANT_DYNAMIC_TARGET = Opcodes.V11;
 
-    private static final int TODO_JVM_TARGET = Opcodes.V1_8;
     private final Typechecker types;
     private final StatementList root;
     private final CompileOptions options;
@@ -72,8 +74,8 @@ public final class BananaCompiler {
     private ClassWriter result;
 
     private final Deque<Map.Entry<StatementList, CompileScope>> scopes = new ArrayDeque<>();
+    private final Map<String, Object> lazyConstants = new HashMap<>();
     private int currentLineNumber;
-    private Label currentLineNumberLabel;
     private int currentVariableDecl;
 
     private BananaCompiler(Typechecker types, StatementList root, CompileOptions options, ProblemCollector problemCollector) {
@@ -126,8 +128,6 @@ public final class BananaCompiler {
         return compiler.compile();
     }
 
-    // TODO: add JVM target
-    @SuppressWarnings("unused")
     private ClassWriter compile() {
         if (result == null) {
             double startTime = System.nanoTime();
@@ -136,7 +136,7 @@ public final class BananaCompiler {
             }
             result = new ClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS);
             jvmName = Descriptor.toJvmName(options.className());
-            result.visit(TODO_JVM_TARGET, Opcodes.ACC_PUBLIC, jvmName, null, "java/lang/Object", null);
+            result.visit(options.jvmTarget(), Opcodes.ACC_PUBLIC, jvmName, null, "java/lang/Object", null);
             result.visitSource(options.sourceFileName(), null);
             {
                 MethodVisitor mv = result.visitMethod(Opcodes.ACC_PRIVATE, "<init>", "()V", null, null);
@@ -223,7 +223,7 @@ public final class BananaCompiler {
                     VariableDeclarationStatement declStmt = (VariableDeclarationStatement)child;
                     if (!declStmt.isGlobalVariableDef()) continue;
                     if (declStmt.modifiers.contains(Modifier2.LAZY)) {
-                        if (TODO_JVM_TARGET < MIN_CONSTANT_DYNAMIC_TARGET) {
+                        if (options.jvmTarget() < MIN_CONSTANT_DYNAMIC_TARGET) {
                             for (VariableDeclaration decl : declStmt.declarations) {
                                 GlobalVariable global = types.getGlobalVariable(decl.name);
                                 result.visitField(
@@ -295,7 +295,74 @@ public final class BananaCompiler {
                                 getMethod.visitEnd();
                             }
                         } else {
-                            // TODO: use CONSTANT_Dynamic for lazy variables
+                            for (VariableDeclaration decl : declStmt.declarations) {
+                                GlobalVariable global = types.getGlobalVariable(decl.name);
+                                if (decl.value instanceof StringExpression) {
+                                    lazyConstants.put(decl.name, ((StringExpression)decl.value).value);
+                                    continue;
+                                } else if (decl.value instanceof CallExpression) {
+                                    CallExpression callExpr = (CallExpression)decl.value;
+                                    MethodCall methodCall = types.getMethodCall(callExpr);
+                                    if (methodCall.isStaticInvocation()) {
+                                        Object[] simpleConstants = new Object[callExpr.args.length];
+                                        boolean isFullySimple = true;
+                                        for (int i = 0; i < simpleConstants.length; i++) {
+                                            if ((simpleConstants[i] = toSimpleConstant(callExpr.args[i])) == null) {
+                                                isFullySimple = false;
+                                                break;
+                                            }
+                                        }
+                                        if (isFullySimple) {
+                                            // Bootstrap directly
+                                            String ownerName = methodCall.isScriptMethod()
+                                                ? jvmName
+                                                : Descriptor.toJvmName(methodCall.getJavaMethod().getDeclaringClass());
+                                            ConstantDynamic constantDynamic = new ConstantDynamic(
+                                                decl.name,
+                                                methodCall.getReturnType().getDescriptor(),
+                                                new Handle(
+                                                    Opcodes.H_INVOKESTATIC,
+                                                    ownerName,
+                                                    methodCall.getName(),
+                                                    methodCall.getDescriptor(),
+                                                    false
+                                                ),
+                                                simpleConstants
+                                            );
+                                            lazyConstants.put(decl.name, constantDynamic);
+                                            continue;
+                                        }
+                                    }
+                                }
+                                InstructionAdapter method = new InstructionAdapter(result.visitMethod(
+                                    Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
+                                    decl.name + "$0",
+                                    "()" + global.getType().getDescriptor(),
+                                    null,
+                                    null
+                                ));
+                                method.visitCode();
+                                Label startLabel = new Label();
+                                method.visitLabel(startLabel);
+                                method.visitLineNumber(declStmt.row, startLabel);
+                                compileExpression(method, decl.value);
+                                method.visitInsn(Opcodes.ARETURN);
+                                method.visitMaxs(-1, -1);
+                                method.visitEnd();
+                                ConstantDynamic constantDynamic = new ConstantDynamic(
+                                    decl.name,
+                                    global.getType().getDescriptor(),
+                                    new Handle(
+                                        Opcodes.H_INVOKESTATIC,
+                                        jvmName,
+                                        decl.name + "$0",
+                                        "()" + global.getType().getDescriptor(),
+                                        false
+                                    ),
+                                    new Object[0]
+                                );
+                                lazyConstants.put(decl.name, constantDynamic);
+                            }
                         }
                     } else {
                         int access = declStmt.modifiers.contains(Modifier2.PUBLIC)
@@ -349,6 +416,13 @@ public final class BananaCompiler {
             }
         }
         return result;
+    }
+
+    private Object toSimpleConstant(ExpressionNode expr) {
+        if (expr instanceof StringExpression) {
+            return ((StringExpression)expr).value;
+        }
+        return null;
     }
 
     private boolean needsMainMethod() {
@@ -571,7 +645,7 @@ public final class BananaCompiler {
             CallExpression callExpr = (CallExpression)expr;
             MethodCall methodToCall = types.getMethodCall(callExpr);
             int opcode;
-            String ownerName, descriptor;
+            String ownerName, descriptor = methodToCall.getDescriptor();
             Label safeNavigationLabel = null;
             if (methodToCall.isScriptMethod()) {
                 if (methodToCall.isExtensionMethod()) {
@@ -586,16 +660,8 @@ public final class BananaCompiler {
                 for (ExpressionNode arg : callExpr.args) {
                     compileExpression(method, arg);
                 }
-                ScriptMethod scriptMethod = methodToCall.getScriptMethod();
                 opcode = Opcodes.INVOKESTATIC;
                 ownerName = jvmName;
-                StringBuilder descriptorBuilder = new StringBuilder("(");
-                for (EvaluatedType argType : scriptMethod.getArgTypes()) {
-                    descriptorBuilder.append(argType.getDescriptor());
-                }
-                descriptor = descriptorBuilder.append(')')
-                    .append(scriptMethod.getReturnType().getDescriptor())
-                    .toString();
             } else {
                 CtMethod javaMethod = methodToCall.getJavaMethod();
                 boolean isStatic = Modifier.isStatic(javaMethod.getModifiers());
@@ -608,7 +674,6 @@ public final class BananaCompiler {
                         method.ifnull(safeNavigationLabel);
                     }
                 }
-                descriptor = javaMethod.getSignature();
                 if (Modifier.isVarArgs(javaMethod.getModifiers())) {
                     int actualArgCount = Descriptor.numOfParameters(descriptor);
                     for (int i = 0; i < actualArgCount - 1; i++) {
@@ -657,13 +722,15 @@ public final class BananaCompiler {
                 GlobalVariable global = types.getGlobalVariable(identExpr.identifier);
                 if (global != null) {
                     if (global.getModifiers().contains(Modifier2.LAZY)) {
-                        if (TODO_JVM_TARGET < MIN_CONSTANT_DYNAMIC_TARGET) {
+                        if (options.jvmTarget() < MIN_CONSTANT_DYNAMIC_TARGET) {
                             method.invokestatic(
                                 jvmName,
                                 identExpr.identifier + "$get",
                                 "()" + global.getType().getDescriptor(),
                                 false
                             );
+                        } else {
+                            method.visitLdcInsn(lazyConstants.get(identExpr.identifier));
                         }
                     } else {
                         method.getstatic(
@@ -756,8 +823,9 @@ public final class BananaCompiler {
     private void lineNumber(int line, InstructionAdapter method) {
         if (line != currentLineNumber) {
             currentLineNumber = line;
-            method.visitLabel(currentLineNumberLabel = new Label());
-            method.visitLineNumber(line, currentLineNumberLabel);
+            Label lineNumberLabel = new Label();
+            method.visitLabel(lineNumberLabel);
+            method.visitLineNumber(line, lineNumberLabel);
         }
     }
 }

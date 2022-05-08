@@ -3,12 +3,15 @@ package io.github.bananalang.compile;
 import java.io.File;
 import java.util.Objects;
 
+import org.objectweb.asm.Opcodes;
+
 public final class CompileOptions {
     public static final CompileOptions DEFAULT = new CompileOptions();
 
     private String sourceFileName = null;
     private String moduleName = null;
     private String className = null;
+    private int jvmTarget = Opcodes.V1_8;
 
     public CompileOptions(String sourceFileName, String moduleName, String className) {
         sourceFileName(sourceFileName);
@@ -66,6 +69,15 @@ public final class CompileOptions {
 
     public String classFileName() {
         return className.replace('.', '/').concat(".class");
+    }
+
+    public int jvmTarget() {
+        return jvmTarget;
+    }
+
+    public CompileOptions jvmTarget(int jvmTarget) {
+        this.jvmTarget = jvmTarget;
+        return this;
     }
 
     public static String fileToModuleName(String fileName) {
