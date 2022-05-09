@@ -24,7 +24,9 @@ public class CompilerTest {
         ClassWriter result;
         try {
             result = BananaCompiler.compile(
-                "println(\"Hello \" + \"world!\");\n",
+                "import java.util.Arrays;\n" +
+                "def var testList = Arrays.asList(\"Hello,\", \"World!\", \"Banana\");\n" +
+                "println(testList);\n",
                 compileOptions, problemCollector
             );
         } catch (GenericCompilationFailureException e) {

@@ -1,11 +1,13 @@
 import banana.builtin.ModuleBuiltin;
-import banana.builtin.StringExtensions;
+import java.util.Arrays;
+import java.util.List;
 
 public class ModuleTest {
    private ModuleTest() {
    }
 
    public static void main(String[] args) {
-      ModuleBuiltin.println(StringExtensions.add("Hello ", "world!"));
+      List testList = Arrays.asList("Hello,", "World!", "Banana");
+      ModuleBuiltin.println(testList);
    }
 }
