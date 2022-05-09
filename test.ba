@@ -1,7 +1,1 @@
-def lazy var myVar = myExpensiveFunc();
-println("created variable");
-def String myExpensiveFunc() {
-    println("initialized");
-    return "hello";
-}
-println(myVar);
+println("Hello " + "world!");

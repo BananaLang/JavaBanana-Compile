@@ -575,6 +575,7 @@ public final class BananaCompiler {
         } else if (expr instanceof CallExpression) {
             CallExpression callExpr = (CallExpression)expr;
             MethodCall methodToCall = types.getMethodCall(callExpr);
+            boolean isInterface;
             int opcode;
             String ownerName, descriptor = methodToCall.getDescriptor();
             Label safeNavigationLabel = null;
@@ -591,6 +592,7 @@ public final class BananaCompiler {
                 for (ExpressionNode arg : callExpr.args) {
                     compileExpression(method, arg);
                 }
+                isInterface = false;
                 opcode = Opcodes.INVOKESTATIC;
                 ownerName = jvmName;
             } else {
@@ -625,9 +627,10 @@ public final class BananaCompiler {
                         compileExpression(method, arg);
                     }
                 }
+                isInterface = javaMethod.getDeclaringClass().isInterface();
                 opcode = isStatic
                     ? Opcodes.INVOKESTATIC
-                    : (javaMethod.getDeclaringClass().isInterface()
+                    : (isInterface
                         ? Opcodes.INVOKEINTERFACE
                         : Opcodes.INVOKEVIRTUAL);
                 ownerName = Descriptor.toJvmName(javaMethod.getDeclaringClass());
@@ -638,7 +641,7 @@ public final class BananaCompiler {
                 ownerName,
                 methodToCall.getName(),
                 descriptor,
-                opcode == Opcodes.INVOKEINTERFACE
+                isInterface
             );
             if (safeNavigationLabel != null) {
                 method.visitLabel(safeNavigationLabel);
@@ -694,6 +697,77 @@ public final class BananaCompiler {
                     method.pop();
                     compileExpression(method, binExpr.right);
                     method.visitLabel(endLabel);
+                    break;
+                }
+                case BITWISE_OR:
+                case BITWISE_XOR:
+                case BITWISE_AND:
+                case LEFT_SHIFT:
+                case RIGHT_SHIFT:
+                case ADD:
+                case SUBTRACT:
+                case MULTIPLY:
+                case DIVIDE:
+                case MODULUS: {
+                    MethodCall methodCall = types.getMethodCall(binExpr);
+                    boolean isInterface;
+                    int opcode;
+                    String ownerName, descriptor = methodCall.getDescriptor();
+                    if (methodCall.isScriptMethod()) {
+                        compileExpression(method, binExpr.left);
+                        compileExpression(method, binExpr.right);
+                        isInterface = false;
+                        opcode = Opcodes.INVOKESTATIC;
+                        ownerName = jvmName;
+                    } else {
+                        CtMethod javaMethod = methodCall.getJavaMethod();
+                        boolean isStatic = Modifier.isStatic(javaMethod.getModifiers());
+                        if (Modifier.isVarArgs(javaMethod.getModifiers())) {
+                            int actualArgCount = Descriptor.numOfParameters(descriptor);
+                            int endParen = descriptor.indexOf(')');
+                            String arrType = descriptor.substring(descriptor.lastIndexOf('L', endParen - 2) + 1, endParen - 1);
+                            if (actualArgCount == 1) {
+                                method.iconst(2);
+                                method.visitTypeInsn(Opcodes.ANEWARRAY, arrType);
+                                method.dup();
+                                method.iconst(0);
+                                compileExpression(method, binExpr.left);
+                                method.visitInsn(Opcodes.AASTORE);
+                                method.dup();
+                                method.iconst(1);
+                                compileExpression(method, binExpr.right);
+                                method.visitInsn(Opcodes.AASTORE);
+                            } else if (actualArgCount == 2) {
+                                compileExpression(method, binExpr.left);
+                                method.iconst(1);
+                                method.visitTypeInsn(Opcodes.ANEWARRAY, arrType);
+                                method.dup();
+                                method.iconst(1);
+                                compileExpression(method, binExpr.right);
+                                method.visitInsn(Opcodes.AASTORE);
+                            } else {
+                                throw new AssertionError(actualArgCount);
+                            }
+                        } else {
+                            compileExpression(method, binExpr.left);
+                            compileExpression(method, binExpr.right);
+                        }
+                        isInterface = javaMethod.getDeclaringClass().isInterface();
+                        opcode = isStatic
+                            ? Opcodes.INVOKESTATIC
+                            : (isInterface
+                                ? Opcodes.INVOKEINTERFACE
+                                : Opcodes.INVOKEVIRTUAL);
+                        ownerName = Descriptor.toJvmName(javaMethod.getDeclaringClass());
+                    }
+                    lineNumber(expr.row, method);
+                    method.visitMethodInsn(
+                        opcode,
+                        ownerName,
+                        methodCall.getName(),
+                        descriptor,
+                        isInterface
+                    );
                     break;
                 }
                 default:

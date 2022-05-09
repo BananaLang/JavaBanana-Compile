@@ -7,7 +7,6 @@ import java.io.PrintWriter;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.util.CheckClassAdapter;
 
 import io.github.bananalang.compile.BananaCompiler;
@@ -20,19 +19,12 @@ public class CompilerTest {
         CompileOptions compileOptions = new CompileOptions()
             .sourceFileName("test.ba")
             .defaultModuleName()
-            .defaultClassName()
-            .jvmTarget(Opcodes.V11);
+            .defaultClassName();
         ProblemCollector problemCollector = new ProblemCollector();
         ClassWriter result;
         try {
             result = BananaCompiler.compile(
-                "def lazy var myVar = myExpensiveFunc();\n" +
-                "println(\"created variable\");\n" +
-                "def String myExpensiveFunc() {\n" +
-                    "println(\"initialized\");\n" +
-                    "return \"hello\";\n" +
-                "}\n" +
-                "println(myVar);\n",
+                "println(\"Hello \" + \"world!\");\n",
                 compileOptions, problemCollector
             );
         } catch (GenericCompilationFailureException e) {
