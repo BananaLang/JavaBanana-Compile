@@ -29,6 +29,7 @@ import io.github.bananalang.parse.ast.AccessExpression;
 import io.github.bananalang.parse.ast.AssignmentExpression;
 import io.github.bananalang.parse.ast.BinaryExpression;
 import io.github.bananalang.parse.ast.CallExpression;
+import io.github.bananalang.parse.ast.CastExpression;
 import io.github.bananalang.parse.ast.ExpressionNode;
 import io.github.bananalang.parse.ast.ExpressionStatement;
 import io.github.bananalang.parse.ast.FunctionDefinitionStatement;
@@ -794,6 +795,11 @@ public final class BananaCompiler {
                 default:
                     throw new AssertionError(binExpr.type);
             }
+        } else if (expr instanceof CastExpression) {
+            CastExpression castExpr = (CastExpression)expr;
+            compileExpression(method, castExpr.target);
+            EvaluatedType destType = types.getType(castExpr);
+            method.visitTypeInsn(Opcodes.CHECKCAST, destType.getJvmName());
         } else if (expr instanceof AssignmentExpression) {
             compileAssignmentExpression(method, (AssignmentExpression)expr, true);
         } else {

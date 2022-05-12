@@ -34,9 +34,9 @@ public class CompilerTest {
             result = BananaCompiler.compile(
                 "import io.github.bananalang.CompilerTest.TEST_SUPPLIER;\n" +
                 "import io.github.bananalang.CompilerTest.REVERSER;\n" +
-                "def var testVar = TEST_SUPPLIER();\n" +
+                "def var testVar = (String)TEST_SUPPLIER();\n" +
                 "println(testVar);\n" +
-                "println(REVERSER(testVar));\n",
+                "println((String)REVERSER(testVar));\n",
                 compileOptions, problemCollector
             );
         } catch (GenericCompilationFailureException e) {
