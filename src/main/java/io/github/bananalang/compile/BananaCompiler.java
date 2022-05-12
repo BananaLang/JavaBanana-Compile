@@ -21,6 +21,7 @@ import org.objectweb.asm.Opcodes;
 import org.objectweb.asm.commons.InstructionAdapter;
 
 import io.github.bananalang.JavaBananaConstants;
+import io.github.bananalang.compilecommon.problems.GenericCompilationFailureException;
 import io.github.bananalang.compilecommon.problems.ProblemCollector;
 import io.github.bananalang.parse.Parser;
 import io.github.bananalang.parse.Tokenizer;
@@ -49,6 +50,7 @@ import io.github.bananalang.typecheck.MethodCall;
 import io.github.bananalang.typecheck.Modifier2;
 import io.github.bananalang.typecheck.ScriptMethod;
 import io.github.bananalang.typecheck.Typechecker;
+import io.github.bananalang.typecheck.MethodCall.CallType;
 import javassist.ClassPool;
 import javassist.CtClass;
 import javassist.CtField;
@@ -122,7 +124,12 @@ public final class BananaCompiler {
 
     public static ClassWriter compile(Typechecker types, StatementList ast, CompileOptions options, ProblemCollector problemCollector) {
         BananaCompiler compiler = new BananaCompiler(types, ast, options, problemCollector);
-        return compiler.compile();
+        try {
+            return compiler.compile();
+        } catch (IllegalArgumentException e) {
+            problemCollector.error(e.getMessage());
+            throw new GenericCompilationFailureException(problemCollector);
+        }
     }
 
     private ClassWriter compile() {
@@ -185,7 +192,7 @@ public final class BananaCompiler {
                     for (int i = 0; i < functionDefinition.args.length; i++) {
                         VariableDeclaration arg = functionDefinition.args[i];
                         if (arg.value != null) {
-                            throw new RuntimeException("Default parameters not supported yet");
+                            throw new IllegalArgumentException("Default parameters not supported yet");
                         }
                         EvaluatedType type = methodDefinition.getArgTypes()[i];
                         if (arg.name == null) {
@@ -452,6 +459,11 @@ public final class BananaCompiler {
         }
         boolean neverending = false;
         if (handler != null) {
+            if (handler.getCallType() == CallType.EXTENSION) {
+                throw new IllegalArgumentException(
+                    "truthy() and isEmpty() operator overloads not supported by extension methods yet"
+                );
+            }
             CtClass declaringClass = handler.getJavaMethod().getDeclaringClass();
             boolean isInterface = declaringClass.isInterface();
             method.visitMethodInsn(
@@ -516,7 +528,7 @@ public final class BananaCompiler {
         Label label = new Label();
         method.visitLabel(label);
         boolean isGlobal = stmt.isGlobalVariableDef();
-        boolean isLazy = stmt.modifiers.contains(Modifier2.LAZY);
+        boolean isLazy = isGlobal && stmt.modifiers.contains(Modifier2.LAZY);
         for (VariableDeclaration decl : stmt.declarations) {
             if (isGlobal) {
                 if (decl.value != null && !isLazy) {
@@ -580,7 +592,7 @@ public final class BananaCompiler {
             String ownerName, descriptor = methodToCall.getDescriptor();
             Label safeNavigationLabel = null;
             if (methodToCall.isScriptMethod()) {
-                if (methodToCall.isExtensionMethod()) {
+                if (methodToCall.getCallType() == CallType.EXTENSION) {
                     AccessExpression accessExpr = (AccessExpression)callExpr.target;
                     compileExpression(method, accessExpr.target);
                     if (accessExpr.safeNavigation) {
@@ -598,7 +610,13 @@ public final class BananaCompiler {
             } else {
                 CtMethod javaMethod = methodToCall.getJavaMethod();
                 boolean isStatic = Modifier.isStatic(javaMethod.getModifiers());
-                if (callExpr.target instanceof AccessExpression && (!isStatic || methodToCall.isExtensionMethod())) {
+                if (
+                    callExpr.target instanceof AccessExpression &&
+                    (
+                        methodToCall.getCallType() == CallType.INSTANCE ||
+                        methodToCall.getCallType() == CallType.EXTENSION
+                    )
+                ) {
                     AccessExpression accessExpr = (AccessExpression)callExpr.target;
                     compileExpression(method, accessExpr.target);
                     if (accessExpr.safeNavigation) {
@@ -606,6 +624,9 @@ public final class BananaCompiler {
                         method.dup();
                         method.ifnull(safeNavigationLabel);
                     }
+                }
+                if (methodToCall.getCallType() == CallType.FUNCTIONAL) {
+                    compileExpression(method, callExpr.target);
                 }
                 if (Modifier.isVarArgs(javaMethod.getModifiers())) {
                     int actualArgCount = Descriptor.numOfParameters(descriptor);
@@ -794,7 +815,7 @@ public final class BananaCompiler {
             } else {
                 GlobalVariable global = types.getGlobalVariable(identifier);
                 if (global.getModifiers().contains(Modifier2.LAZY)) {
-                    throw new IllegalArgumentException("TODO: Support lazy variables");
+                    throw new AssertionError(expr);
                 } else {
                     method.putstatic(
                         jvmName,
