@@ -41,7 +41,9 @@ import io.github.bananalang.parse.ast.ReturnStatement;
 import io.github.bananalang.parse.ast.StatementList;
 import io.github.bananalang.parse.ast.StatementNode;
 import io.github.bananalang.parse.ast.StringExpression;
+import io.github.bananalang.parse.ast.UnaryExpression;
 import io.github.bananalang.parse.ast.VariableDeclarationStatement;
+import io.github.bananalang.parse.ast.UnaryExpression.UnaryOperator;
 import io.github.bananalang.parse.ast.VariableDeclarationStatement.VariableDeclaration;
 import io.github.bananalang.parse.token.Token;
 import io.github.bananalang.typecheck.EvaluatedType;
@@ -77,6 +79,7 @@ public final class BananaCompiler {
     private final Map<String, Object> lazyConstants = new HashMap<>();
     private int currentLineNumber;
     private int currentVariableDecl;
+    private boolean generateNullAssertionFailureMethod = false;
 
     private BananaCompiler(Typechecker types, StatementList root, CompileOptions options, ProblemCollector problemCollector) {
         this.types = types;
@@ -349,6 +352,72 @@ public final class BananaCompiler {
                 mainMethod.visitMaxs(-1, -1);
                 mainMethod.visitEnd();
             }
+            if (generateNullAssertionFailureMethod) {
+                MethodVisitor mv = result.visitMethod(
+                    Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
+                    "$nullAssertionFailure",
+                    "(Ljava/lang/String;)Ljava/lang/NullPointerException;",
+                    null,
+                    new String[] {"java/lang/NullPointerException"}
+                );
+                mv.visitParameter("src", 0);
+                mv.visitCode();
+                Label start = new Label();
+                mv.visitLabel(start);
+                {
+                    InstructionAdapter ia = new InstructionAdapter(mv);
+                    ia.visitTypeInsn(Opcodes.NEW, "java/lang/NullPointerException");
+                    ia.dup();
+                    ia.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
+                    ia.dup();
+                    ia.visitLdcInsn("Non-null assertion failed because ");
+                    ia.invokespecial(
+                        "java/lang/StringBuilder",
+                        "<init>",
+                        "(Ljava/lang/String;)V",
+                        false
+                    );
+                    ia.visitVarInsn(Opcodes.ALOAD, 0);
+                    ia.invokevirtual(
+                        "java/lang/StringBuilder",
+                        "append",
+                        "(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+                        false
+                    );
+                    ia.visitLdcInsn(" evaluated to null");
+                    ia.invokevirtual(
+                        "java/lang/StringBuilder",
+                        "append",
+                        "(Ljava/lang/String;)Ljava/lang/StringBuilder;",
+                        false
+                    );
+                    ia.invokevirtual(
+                        "java/lang/StringBuilder",
+                        "toString",
+                        "()Ljava/lang/String;",
+                        false
+                    );
+                    ia.invokespecial(
+                        "java/lang/NullPointerException",
+                        "<init>",
+                        "(Ljava/lang/String;)V",
+                        false
+                    );
+                    ia.athrow();
+                }
+                Label end = new Label();
+                mv.visitLabel(end);
+                mv.visitLocalVariable(
+                    "src",
+                    "Ljava/lang/String;",
+                    null,
+                    start,
+                    end,
+                    0
+                );
+                mv.visitMaxs(-1, -1);
+                mv.visitEnd();
+            }
             result.visitEnd();
             if (JavaBananaConstants.DEBUG) {
                 System.out.println("Finished compile in " + (System.nanoTime() - startTime) / 1_000_000D + "ms");
@@ -619,15 +688,19 @@ public final class BananaCompiler {
                     )
                 ) {
                     AccessExpression accessExpr = (AccessExpression)callExpr.target;
-                    compileExpression(method, accessExpr.target);
                     if (accessExpr.safeNavigation) {
+                        compileExpression(method, accessExpr.target);
                         safeNavigationLabel = new Label();
                         method.dup();
                         method.ifnull(safeNavigationLabel);
+                    } else if (methodToCall.getCallType() == CallType.EXTENSION) {
+                        compileExpression(method, accessExpr.target);
+                    } else {
+                        compileNoNonNullAssert(method, accessExpr.target);
                     }
                 }
                 if (methodToCall.getCallType() == CallType.FUNCTIONAL) {
-                    compileExpression(method, callExpr.target);
+                    compileNoNonNullAssert(method, callExpr.target);
                 }
                 if (Modifier.isVarArgs(javaMethod.getModifiers())) {
                     int actualArgCount = Descriptor.numOfParameters(descriptor);
@@ -745,7 +818,8 @@ public final class BananaCompiler {
                         CtMethod javaMethod = methodCall.getJavaMethod();
                         boolean isStatic = Modifier.isStatic(javaMethod.getModifiers());
                         if (Modifier.isVarArgs(javaMethod.getModifiers())) {
-                            int actualArgCount = Descriptor.numOfParameters(descriptor);
+                            int actualArgCount = Descriptor.numOfParameters(descriptor) +
+                                (methodCall.getCallType() == CallType.EXTENSION ? 0 : 1);
                             int endParen = descriptor.indexOf(')');
                             String arrType = descriptor.substring(descriptor.lastIndexOf('L', endParen - 2) + 1, endParen - 1);
                             if (actualArgCount == 1) {
@@ -760,7 +834,11 @@ public final class BananaCompiler {
                                 compileExpression(method, binExpr.right);
                                 method.visitInsn(Opcodes.AASTORE);
                             } else if (actualArgCount == 2) {
-                                compileExpression(method, binExpr.left);
+                                if (methodCall.getCallType() == CallType.EXTENSION) {
+                                    compileExpression(method, binExpr.left);
+                                } else {
+                                    compileNoNonNullAssert(method, binExpr.left);
+                                }
                                 method.iconst(1);
                                 method.visitTypeInsn(Opcodes.ANEWARRAY, arrType);
                                 method.dup();
@@ -771,7 +849,11 @@ public final class BananaCompiler {
                                 throw new AssertionError(actualArgCount);
                             }
                         } else {
-                            compileExpression(method, binExpr.left);
+                            if (methodCall.getCallType() == CallType.EXTENSION) {
+                                compileExpression(method, binExpr.left);
+                            } else {
+                                compileNoNonNullAssert(method, binExpr.left);
+                            }
                             compileExpression(method, binExpr.right);
                         }
                         isInterface = javaMethod.getDeclaringClass().isInterface();
@@ -797,14 +879,61 @@ public final class BananaCompiler {
             }
         } else if (expr instanceof CastExpression) {
             CastExpression castExpr = (CastExpression)expr;
+            lineNumber(expr.row, method);
             compileExpression(method, castExpr.target);
             EvaluatedType destType = types.getType(castExpr);
             method.visitTypeInsn(Opcodes.CHECKCAST, destType.getJvmName());
+        } else if (expr instanceof UnaryExpression) {
+            UnaryExpression unaryExpr = (UnaryExpression)expr;
+            lineNumber(expr.row, method);
+            switch (unaryExpr.type) {
+                case ASSERT_NONNULL: {
+                    compileExpression(method, unaryExpr.value);
+                    Label nullCheckSuccess = new Label();
+                    method.dup();
+                    method.ifnonnull(nullCheckSuccess);
+                    generateNullAssertionFailureMethod = true;
+                    method.pop();
+                    method.visitLdcInsn(unaryExpr.value.toString());
+                    method.invokestatic(
+                        jvmName,
+                        "$nullAssertionFailure",
+                        "(Ljava/lang/String;)Ljava/lang/NullPointerException;",
+                        false
+                    );
+                    method.athrow();
+                    // method.visitTypeInsn(Opcodes.NEW, "java/lang/NullPointerException");
+                    // method.dup();
+                    // method.visitLdcInsn("Non-null assertion failed because " + unaryExpr.value + " evaluated to null");
+                    // method.invokespecial(
+                    //     "java/lang/NullPointerException",
+                    //     "<init>",
+                    //     "(Ljava/lang/String;)V",
+                    //     false
+                    // );
+                    // method.athrow();
+                    method.visitLabel(nullCheckSuccess);
+                    break;
+                }
+                default:
+                    throw new AssertionError(unaryExpr.type);
+            }
         } else if (expr instanceof AssignmentExpression) {
             compileAssignmentExpression(method, (AssignmentExpression)expr, true);
         } else {
             throw new IllegalArgumentException(expr.getClass().getSimpleName() + " not supported for compilation yet");
         }
+    }
+
+    private void compileNoNonNullAssert(InstructionAdapter method, ExpressionNode expr) {
+        if (expr instanceof UnaryExpression) {
+            UnaryExpression unaryExpr = (UnaryExpression)expr;
+            if (unaryExpr.type == UnaryOperator.ASSERT_NONNULL) {
+                compileExpression(method, unaryExpr.value);
+                return;
+            }
+        }
+        compileExpression(method, expr);
     }
 
     private void compileAssignmentExpression(InstructionAdapter method, AssignmentExpression expr, boolean dup) {

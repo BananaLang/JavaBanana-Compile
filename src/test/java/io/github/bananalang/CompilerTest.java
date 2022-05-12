@@ -18,7 +18,6 @@ import io.github.bananalang.compilecommon.problems.GenericCompilationFailureExce
 import io.github.bananalang.compilecommon.problems.ProblemCollector;
 
 public class CompilerTest {
-    @NonNull
     public static final Supplier<String> TEST_SUPPLIER = () -> "Hello";
     @NonNull
     public static final Function<String, String> REVERSER = s -> new StringBuilder(s).reverse().toString();
@@ -34,9 +33,9 @@ public class CompilerTest {
             result = BananaCompiler.compile(
                 "import io.github.bananalang.CompilerTest.TEST_SUPPLIER;\n" +
                 "import io.github.bananalang.CompilerTest.REVERSER;\n" +
-                "def var testVar = (String)TEST_SUPPLIER();\n" +
+                "def var testVar = (String?)TEST_SUPPLIER!!();\n" +
                 "println(testVar);\n" +
-                "println((String)REVERSER(testVar));\n",
+                "println((String)REVERSER(testVar)!!);\n",
                 compileOptions, problemCollector
             );
         } catch (GenericCompilationFailureException e) {

@@ -1,5 +1,5 @@
 import io.github.bananalang.CompilerTest.TEST_SUPPLIER;
 import io.github.bananalang.CompilerTest.REVERSER;
-def var testVar = (String)TEST_SUPPLIER();
+def var testVar = (String?)TEST_SUPPLIER!!();
 println(testVar);
-println((String)REVERSER(testVar));
+println((String)REVERSER(testVar)!!);
