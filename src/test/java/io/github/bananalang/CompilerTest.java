@@ -20,7 +20,7 @@ import io.github.bananalang.compilecommon.problems.ProblemCollector;
 public class CompilerTest {
     public static final Supplier<String> TEST_SUPPLIER = () -> "Hello";
     @NonNull
-    public static final Function<String, String> REVERSER = s -> new StringBuilder(s).reverse().toString();
+    public static final Function<String, String> REVERSER = s -> null;
 
     public static void main(String[] args) throws IOException {
         CompileOptions compileOptions = new CompileOptions()

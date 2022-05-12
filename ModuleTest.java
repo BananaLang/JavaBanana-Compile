@@ -1,4 +1,5 @@
 import banana.builtin.ModuleBuiltin;
+import banana.internal.util.InternalUtil;
 import io.github.bananalang.CompilerTest;
 
 public class ModuleTest {
@@ -10,7 +11,7 @@ public class ModuleTest {
       ModuleBuiltin.println(testVar);
       Object var10000 = CompilerTest.REVERSER.apply(testVar);
       if (var10000 == null) {
-         throw $nullAssertionFailure("REVERSER(testVar)");
+         throw InternalUtil.$nullAssertionFailure("REVERSER(testVar)");
       } else {
          ModuleBuiltin.println((String)var10000);
       }

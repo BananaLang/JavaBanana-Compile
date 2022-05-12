@@ -79,7 +79,6 @@ public final class BananaCompiler {
     private final Map<String, Object> lazyConstants = new HashMap<>();
     private int currentLineNumber;
     private int currentVariableDecl;
-    private boolean generateNullAssertionFailureMethod = false;
 
     private BananaCompiler(Typechecker types, StatementList root, CompileOptions options, ProblemCollector problemCollector) {
         this.types = types;
@@ -351,72 +350,6 @@ public final class BananaCompiler {
                 }
                 mainMethod.visitMaxs(-1, -1);
                 mainMethod.visitEnd();
-            }
-            if (generateNullAssertionFailureMethod) {
-                MethodVisitor mv = result.visitMethod(
-                    Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
-                    "$nullAssertionFailure",
-                    "(Ljava/lang/String;)Ljava/lang/NullPointerException;",
-                    null,
-                    new String[] {"java/lang/NullPointerException"}
-                );
-                mv.visitParameter("src", 0);
-                mv.visitCode();
-                Label start = new Label();
-                mv.visitLabel(start);
-                {
-                    InstructionAdapter ia = new InstructionAdapter(mv);
-                    ia.visitTypeInsn(Opcodes.NEW, "java/lang/NullPointerException");
-                    ia.dup();
-                    ia.visitTypeInsn(Opcodes.NEW, "java/lang/StringBuilder");
-                    ia.dup();
-                    ia.visitLdcInsn("Non-null assertion failed because ");
-                    ia.invokespecial(
-                        "java/lang/StringBuilder",
-                        "<init>",
-                        "(Ljava/lang/String;)V",
-                        false
-                    );
-                    ia.visitVarInsn(Opcodes.ALOAD, 0);
-                    ia.invokevirtual(
-                        "java/lang/StringBuilder",
-                        "append",
-                        "(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-                        false
-                    );
-                    ia.visitLdcInsn(" evaluated to null");
-                    ia.invokevirtual(
-                        "java/lang/StringBuilder",
-                        "append",
-                        "(Ljava/lang/String;)Ljava/lang/StringBuilder;",
-                        false
-                    );
-                    ia.invokevirtual(
-                        "java/lang/StringBuilder",
-                        "toString",
-                        "()Ljava/lang/String;",
-                        false
-                    );
-                    ia.invokespecial(
-                        "java/lang/NullPointerException",
-                        "<init>",
-                        "(Ljava/lang/String;)V",
-                        false
-                    );
-                    ia.athrow();
-                }
-                Label end = new Label();
-                mv.visitLabel(end);
-                mv.visitLocalVariable(
-                    "src",
-                    "Ljava/lang/String;",
-                    null,
-                    start,
-                    end,
-                    0
-                );
-                mv.visitMaxs(-1, -1);
-                mv.visitEnd();
             }
             result.visitEnd();
             if (JavaBananaConstants.DEBUG) {
@@ -892,11 +825,10 @@ public final class BananaCompiler {
                     Label nullCheckSuccess = new Label();
                     method.dup();
                     method.ifnonnull(nullCheckSuccess);
-                    generateNullAssertionFailureMethod = true;
                     method.pop();
                     method.visitLdcInsn(unaryExpr.value.toString());
                     method.invokestatic(
-                        jvmName,
+                        "banana/internal/util/InternalUtil",
                         "$nullAssertionFailure",
                         "(Ljava/lang/String;)Ljava/lang/NullPointerException;",
                         false
