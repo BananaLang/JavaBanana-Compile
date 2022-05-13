@@ -826,7 +826,7 @@ public final class BananaCompiler {
                     method.dup();
                     method.ifnonnull(nullCheckSuccess);
                     method.pop();
-                    method.visitLdcInsn(unaryExpr.value.toString());
+                    method.visitLdcInsn(options.hideSourceCodeInformation() ? "[...]" : unaryExpr.value.toString());
                     method.invokestatic(
                         "banana/internal/util/InternalUtil",
                         "$nullAssertionFailure",
@@ -834,16 +834,6 @@ public final class BananaCompiler {
                         false
                     );
                     method.athrow();
-                    // method.visitTypeInsn(Opcodes.NEW, "java/lang/NullPointerException");
-                    // method.dup();
-                    // method.visitLdcInsn("Non-null assertion failed because " + unaryExpr.value + " evaluated to null");
-                    // method.invokespecial(
-                    //     "java/lang/NullPointerException",
-                    //     "<init>",
-                    //     "(Ljava/lang/String;)V",
-                    //     false
-                    // );
-                    // method.athrow();
                     method.visitLabel(nullCheckSuccess);
                     break;
                 }

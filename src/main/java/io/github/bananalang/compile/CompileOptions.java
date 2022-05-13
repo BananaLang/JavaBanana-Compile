@@ -12,6 +12,7 @@ public final class CompileOptions {
     private String moduleName = null;
     private String className = null;
     private int jvmTarget = Opcodes.V1_8;
+    private boolean hideSourceCodeInformation;
 
     public CompileOptions(String sourceFileName, String moduleName, String className) {
         sourceFileName(sourceFileName);
@@ -77,6 +78,15 @@ public final class CompileOptions {
 
     public CompileOptions jvmTarget(int jvmTarget) {
         this.jvmTarget = jvmTarget;
+        return this;
+    }
+
+    public boolean hideSourceCodeInformation() {
+        return hideSourceCodeInformation;
+    }
+
+    public CompileOptions hideSourceCodeInformation(boolean hideSourceCodeInformation) {
+        this.hideSourceCodeInformation = hideSourceCodeInformation;
         return this;
     }
 
