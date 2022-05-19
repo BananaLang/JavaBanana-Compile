@@ -1,5 +1,6 @@
-import io.github.bananalang.CompilerTest.TEST_SUPPLIER;
-import io.github.bananalang.CompilerTest.REVERSER;
-def var testVar = (String?)TEST_SUPPLIER!!();
-println(testVar);
-println((String)REVERSER(testVar)!!);
+println(10);
+println(30);
+println(130);
+println(3221225472);
+println(3221225472);
+println(147573952589676412928);

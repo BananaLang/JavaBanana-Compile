@@ -4,8 +4,10 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.Reader;
+import java.math.BigInteger;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Deque;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -36,6 +38,7 @@ import io.github.bananalang.parse.ast.FunctionDefinitionStatement;
 import io.github.bananalang.parse.ast.IdentifierExpression;
 import io.github.bananalang.parse.ast.IfOrWhileStatement;
 import io.github.bananalang.parse.ast.ImportStatement;
+import io.github.bananalang.parse.ast.IntegerExpression;
 import io.github.bananalang.parse.ast.ReservedIdentifierExpression;
 import io.github.bananalang.parse.ast.ReturnStatement;
 import io.github.bananalang.parse.ast.StatementList;
@@ -67,6 +70,15 @@ public final class BananaCompiler {
     private static final String NULLABLE_ANNOTATION = "Lbanana/internal/annotation/Nullable;";
     private static final String NONNULL_ANNOTATION = "Lbanana/internal/annotation/NonNull;";
 
+    private static final BigInteger FAST_NUMBERS_MIN = BigInteger.valueOf(-16);
+    private static final BigInteger FAST_NUMBERS_MAX = BigInteger.valueOf(16);
+    private static final BigInteger INTERNED_MIN = BigInteger.valueOf(-128);
+    private static final BigInteger INTERNED_MAX = BigInteger.valueOf(128);
+    private static final BigInteger INT_MIN = BigInteger.valueOf(Integer.MIN_VALUE);
+    private static final BigInteger INT_MAX = BigInteger.valueOf(Integer.MAX_VALUE);
+    private static final BigInteger LONG_MIN = BigInteger.valueOf(Long.MIN_VALUE);
+    private static final BigInteger LONG_MAX = BigInteger.valueOf(Long.MAX_VALUE);
+
     private final Typechecker types;
     private final StatementList root;
     private final CompileOptions options;
@@ -79,6 +91,8 @@ public final class BananaCompiler {
     private final Map<String, Object> lazyConstants = new HashMap<>();
     private int currentLineNumber;
     private int currentVariableDecl;
+    private List<String> unsupportedConstTypes = new ArrayList<>();
+    private Map<Object, String> unsupportedConstValues = new HashMap<>();
 
     private BananaCompiler(Typechecker types, StatementList root, CompileOptions options, ProblemCollector problemCollector) {
         this.types = types;
@@ -351,6 +365,16 @@ public final class BananaCompiler {
                 mainMethod.visitMaxs(-1, -1);
                 mainMethod.visitEnd();
             }
+            for (int i = 0; i < unsupportedConstTypes.size(); i++) {
+                String fieldName = getUnsupportedConstFieldName(i);
+                result.visitField(
+                    Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
+                    fieldName,
+                    unsupportedConstTypes.get(i),
+                    null,
+                    null
+                );
+            }
             result.visitEnd();
             if (JavaBananaConstants.DEBUG) {
                 System.out.println("Finished compile in " + (System.nanoTime() - startTime) / 1_000_000D + "ms");
@@ -575,6 +599,70 @@ public final class BananaCompiler {
         if (expr instanceof StringExpression) {
             lineNumber(expr.row, method);
             method.aconst(((StringExpression)expr).value);
+        } else if (expr instanceof IntegerExpression) {
+            IntegerExpression intExpr = (IntegerExpression)expr;
+            lineNumber(expr.row, method);
+            if (intExpr.value.compareTo(FAST_NUMBERS_MIN) >= 0 && intExpr.value.compareTo(FAST_NUMBERS_MAX) <= 0) {
+                String varName = "$"
+                    + (intExpr.value.compareTo(BigInteger.ZERO) < 0 ? "_" : "")
+                    + Math.abs(intExpr.value.intValue());
+                method.getstatic(
+                    "banana/internal/util/FastNumbers",
+                    varName,
+                    "Lbanana/builtin/Int;"
+                );
+            } else if (intExpr.value.compareTo(INTERNED_MIN) >= 0 && intExpr.value.compareTo(INTERNED_MAX) < 0) {
+                method.getstatic(
+                    "banana/builtin/Int",
+                    "$INTERNED",
+                    "[Lbanana/builtin/Int;"
+                );
+                method.iconst(intExpr.value.intValue() + 128);
+                method.visitInsn(Opcodes.AALOAD);
+            } else {
+                String fieldName = getUnsupportedConst(intExpr.value, "Lbanana/builtin/Int;");
+                method.getstatic(jvmName, fieldName, "Lbanana/builtin/Int;");
+                method.dup();
+                Label nonnullLabel = new Label();
+                method.ifnonnull(nonnullLabel);
+                method.pop();
+                if (intExpr.value.compareTo(INT_MIN) >= 0 && intExpr.value.compareTo(INT_MAX) <= 0) {
+                    method.iconst(intExpr.value.intValue());
+                    method.invokestatic(
+                        "banana/builtin/Int",
+                        "valueOf",
+                        "(I)Lbanana/builtin/Int;",
+                        false
+                    );
+                } else if (intExpr.value.compareTo(LONG_MIN) >= 0 && intExpr.value.compareTo(LONG_MAX) <= 0) {
+                    method.lconst(intExpr.value.longValue());
+                    method.invokestatic(
+                        "banana/builtin/Int",
+                        "valueOf",
+                        "(J)Lbanana/builtin/Int;",
+                        false
+                    );
+                } else {
+                    method.visitTypeInsn(Opcodes.NEW, "java/math/BigInteger");
+                    method.dup();
+                    method.aconst(intExpr.value.toString());
+                    method.invokespecial(
+                        "java/math/BigInteger",
+                        "<init>",
+                        "(Ljava/lang/String;)V",
+                        false
+                    );
+                    method.invokestatic(
+                        "banana/builtin/Int",
+                        "valueOf",
+                        "(Ljava/math/BigInteger;)Lbanana/builtin/Int;",
+                        false
+                    );
+                }
+                method.dup();
+                method.putstatic(jvmName, fieldName, "Lbanana/builtin/Int;");
+                method.mark(nonnullLabel);
+            }
         } else if (expr instanceof ReservedIdentifierExpression) {
             ReservedIdentifierExpression reservedExpr = (ReservedIdentifierExpression)expr;
             lineNumber(expr.row, method);
@@ -886,6 +974,21 @@ public final class BananaCompiler {
                 "Can't assign to " + expr.target.getClass().getSimpleName() + " yet"
             );
         }
+    }
+
+    private String getUnsupportedConst(Object value, String type) {
+        String fieldName = unsupportedConstValues.get(value);
+        if (fieldName == null) {
+            int constIdx = unsupportedConstTypes.size();
+            fieldName = getUnsupportedConstFieldName(constIdx);
+            unsupportedConstTypes.add(type);
+            unsupportedConstValues.put(value, fieldName);
+        }
+        return fieldName;
+    }
+
+    private String getUnsupportedConstFieldName(int idx) {
+        return "$const" + idx;
     }
 
     private void addLocal(String name, int index) {

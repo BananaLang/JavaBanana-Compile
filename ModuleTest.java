@@ -1,19 +1,45 @@
+import banana.builtin.Int;
 import banana.builtin.ModuleBuiltin;
-import banana.internal.util.InternalUtil;
-import io.github.bananalang.CompilerTest;
+import banana.internal.util.FastNumbers;
+import java.math.BigInteger;
 
 public class ModuleTest {
+   // $FF: synthetic field
+   private static Int $const0;
+   // $FF: synthetic field
+   private static Int $const1;
+   // $FF: synthetic field
+   private static Int $const2;
+
    private ModuleTest() {
    }
 
    public static void main(String[] args) {
-      String testVar = (String)CompilerTest.TEST_SUPPLIER.get();
-      ModuleBuiltin.println(testVar);
-      Object var10000 = CompilerTest.REVERSER.apply(testVar);
-      if (var10000 == null) {
-         throw InternalUtil.$nullAssertionFailure("REVERSER(testVar)");
-      } else {
-         ModuleBuiltin.println((String)var10000);
+      ModuleBuiltin.println(FastNumbers.$10);
+      ModuleBuiltin.println(Int.$INTERNED[158]);
+      Int var10000 = $const0;
+      if ($const0 == null) {
+         var10000 = $const0 = Int.valueOf(130);
       }
+
+      ModuleBuiltin.println(var10000);
+      var10000 = $const1;
+      if ($const1 == null) {
+         var10000 = $const1 = Int.valueOf(3221225472L);
+      }
+
+      ModuleBuiltin.println(var10000);
+      var10000 = $const1;
+      if ($const1 == null) {
+         var10000 = $const1 = Int.valueOf(3221225472L);
+      }
+
+      ModuleBuiltin.println(var10000);
+      var10000 = $const2;
+      if ($const2 == null) {
+         var10000 = $const2 = Int.valueOf(new BigInteger("147573952589676412928"));
+      }
+
+      ModuleBuiltin.println(var10000);
    }
 }

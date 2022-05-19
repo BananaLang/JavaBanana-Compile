@@ -31,11 +31,12 @@ public class CompilerTest {
         ClassWriter result;
         try {
             result = BananaCompiler.compile(
-                "import io.github.bananalang.CompilerTest.TEST_SUPPLIER;\n" +
-                "import io.github.bananalang.CompilerTest.REVERSER;\n" +
-                "def var testVar = (String?)TEST_SUPPLIER!!();\n" +
-                "println(testVar);\n" +
-                "println((String)REVERSER(testVar)!!);\n",
+                "println(10);\n" +
+                "println(30);\n" +
+                "println(130);\n" +
+                "println(3221225472);\n" +
+                "println(3221225472);\n" +
+                "println(147573952589676412928);\n",
                 compileOptions, problemCollector
             );
         } catch (GenericCompilationFailureException e) {
